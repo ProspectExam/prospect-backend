@@ -85,10 +85,10 @@ async fn main() -> io::Result<()> {
           .write_all(
             &b"HTTP/1.1 200 OK\r\n\
                     Connection: close\r\n\
-                    Content-length: 12\r\n\
+                    Content-length: 84\r\n\
                     \r\n\
-                    <h1>Hello world!</h1>
-                    </br>
+                    <h1>Hello world!</h1>\n\
+                    </br>\n\
                     A test server wrapped by cloudflare and running with TLS"[..],
           )
           .await?;
