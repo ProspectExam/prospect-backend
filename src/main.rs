@@ -83,11 +83,13 @@ async fn main() -> io::Result<()> {
         let mut output = sink();
         stream
           .write_all(
-            &b"HTTP/1.0 200 ok\r\n\
+            &b"HTTP/1.1 200 OK\r\n\
                     Connection: close\r\n\
                     Content-length: 12\r\n\
                     \r\n\
-                    Hello world!"[..],
+                    <h1>Hello world!</h1>
+                    </br>
+                    A test server wrapped by cloudflare and running with TLS"[..],
           )
           .await?;
         stream.shutdown().await?;
