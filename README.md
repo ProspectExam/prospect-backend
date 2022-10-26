@@ -10,6 +10,8 @@
 | /subscribe |  post  | json: [SubscribeInfo](#SubscribeInfo) | json: [SubscribeResult](#SubscribeResult) |
 |  /search   |  post  |    json: [SearchInfo](#SearchInfo)    |    json: [SearchResult](#SearchResult)    |
 
+for wechat api, see: https://github.com/ProspectExam/prospect-interface
+
 ##### SignUpInfo
 ```rust
 struct SignUpInfo {
