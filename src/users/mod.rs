@@ -15,12 +15,31 @@ pub enum SignUpErr {
   OtherErr,
 }
 
+impl Into<String> for SignUpErr {
+  fn into(self) -> String {
+    match self {
+      SignUpErr::UserExist => "user not exist".into(),
+      SignUpErr::OtherErr => "unknown error".into(),
+    }
+  }
+}
+
 #[derive(Debug)]
 pub enum LogInErr {
   UserNotExist,
   PasswdNotMatch,
   OtherErr,
   // TODO: RecapchaErr,
+}
+
+impl Into<String> for LogInErr {
+  fn into(self) -> String {
+    match self {
+      LogInErr::UserNotExist => "user not exist".into(),
+      LogInErr::PasswdNotMatch => "password not match".into(),
+      LogInErr::OtherErr => "unknown error".into(),
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -75,7 +94,7 @@ impl ProspectSqlPool {
     match r {
       Ok(database_info) => {
         let cur_hash = Self::KDF_with_salt(&database_info.2, &info.password);
-        if cur_hash.as_bytes() != database_info.3.as_slice()   {
+        if cur_hash.as_bytes() != database_info.3.as_slice() {
           Err(LogInErr::PasswdNotMatch)
         } else {
           Ok((database_info.0, AccessToken))

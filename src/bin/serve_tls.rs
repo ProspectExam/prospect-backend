@@ -10,7 +10,6 @@ use std::convert::Infallible;
 use argh::FromArgs;
 use log::{info, LevelFilter};
 use warp::Filter;
-use rustls_pemfile::read_one;
 use sqlx::{MySql, Pool};
 
 use prospect_backend::types::*;
@@ -152,16 +151,13 @@ async fn sign_up_handler(info: SignUpInfo, mut pool: PPool) -> Result<impl warp:
     Ok(()) => {
       SignUpResult {
         success: true,
-        message: "".to_string(),
+        message: "ok".to_string(),
       }
     }
     Err(e) => {
       SignUpResult {
         success: false,
-        message: match e {
-          SignUpErr::UserExist => "user exist".to_string(),
-          _ => "unknown error".to_string(),
-        },
+        message: e.into(),
       }
     }
   };
@@ -181,11 +177,7 @@ async fn log_in_handler(info: LogInInfo, mut pool: PPool) -> Result<impl warp::R
     Err(e) => {
       LogInResult {
         success: false,
-        message: match e {
-          LogInErr::UserNotExist => { "user not exist" }
-          LogInErr::PasswdNotMatch => { "password not match" }
-          LogInErr::OtherErr => { "unknown error" }
-        }.to_string(),
+        message: e.into(),
         user_id: 0,
         access_token: "".to_string(),
       }

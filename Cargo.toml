@@ -6,15 +6,19 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1", features = ["full"] }
+argh = "0.1"
+log = "0.4"
+rand = "0.8"
+pretty_env_logger = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+
 rustls = "0.20"
 rustls-pemfile = "1.0"
-sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "mysql"] }
-tokio-rustls = "0.23"
-argh = "0.1"
-warp = { version = "0.3", features = ["tls"] }
-serde = { version = "1.0", features = ["derive"] }
-pretty_env_logger = "0.4"
 rust-crypto = "0.2"
-rand = "0.8"
-log = "0.4"
+
+tokio = { version = "1", features = ["full"] }
+tokio-rustls = "0.23"
+
+reqwest = { version = "0.11", features = ["json"] }
+warp = { version = "0.3", features = ["tls"] }
+sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "mysql"] }
