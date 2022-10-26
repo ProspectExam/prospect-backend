@@ -917,6 +917,7 @@ name = "prospect-backend"
 version = "0.1.0"
 dependencies = [
  "argh",
+ "log",
  "pretty_env_logger",
  "rand 0.8.5",
  "rust-crypto",

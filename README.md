@@ -40,6 +40,7 @@ struct LogInInfo {
 struct LogInResult {
   success: bool,
   message: String,
+  user_id: u32,
   access_token: String,
 }
 ```

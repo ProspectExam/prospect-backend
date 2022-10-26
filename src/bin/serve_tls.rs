@@ -8,14 +8,14 @@ use std::net::SocketAddr;
 use std::convert::Infallible;
 
 use argh::FromArgs;
+use log::{info, LevelFilter};
 use warp::Filter;
 use rustls_pemfile::read_one;
 use sqlx::{MySql, Pool};
 
-
 use prospect_backend::types::*;
 use prospect_backend::users;
-use prospect_backend::users::{ProspectSqlPool, SignUpErr};
+use prospect_backend::users::{LogInErr, ProspectSqlPool, SignUpErr};
 
 /// warp TLS server example
 #[derive(FromArgs)]
@@ -54,35 +54,46 @@ type PPool = Arc<tokio::sync::Mutex<ProspectSqlPool>>;
 
 #[tokio::main]
 async fn main() {
-  pretty_env_logger::init();
+  pretty_env_logger::formatted_timed_builder()
+    .format_timestamp_secs()
+    .filter_level(LevelFilter::Debug)
+    .init();
+
   let options: Options = argh::from_env();
+
+  info!("Prospect server_tls start");
 
   let pool = Arc::new(tokio::sync::Mutex::new(
     users::new_pool(
       options.sql_user.clone(),
       options.sql_passwd.clone(),
       options.sql_addr,
-      5
+      5,
     ).await.unwrap())
   );
+  info!("Create Sql connection pool OK");
 
   let root = warp::any();
   let hello_world = root
     .and(warp::get())
-    .and(warp::path("hello"))
+    .and(warp::path::end())
+    //.and(warp::path("hello"))
     .map(|| {
-      "<html>\n\
-     <head> hello world </head>\n\
-     </html>\n\
-     <body>\n\
-     <h1>Hello world!</h1>\n\
-     </br>\n\
-     A test server wrapped by cloudflare and running with TLS\n\
-     </body>"
+      warp::reply::html(
+        "<html>\n\
+         <head> hello world </head>\n\
+         </html>\n\
+         <body>\n\
+         <h1>Hello world!</h1>\n\
+         </br>\n\
+         A test server wrapped by cloudflare and running with TLS\n\
+         </body>"
+      )
     });
+  info!("path \"/\" registered");
 
-  let pcp = Arc::clone(&pool);
-  let post_route = root
+  // route /sign_up
+  let route_sign_up = root
     .and(warp::post())
     .and(warp::path("sign_up"))
     .and(warp::path::end())
@@ -94,28 +105,39 @@ async fn main() {
     //   warp::reply::json(&info)
     // })
     .and(with_pool(Arc::clone(&pool)))
-    .and_then(sign_up);
+    .and_then(sign_up_handler);
+  info!("path \"/sign_up\" created");
 
-
-  let get_route = root
-    .and(warp::get())
-    .and(warp::path("sign_in"))
+  let route_log_in = root
+    .and(warp::post())
+    .and(warp::path("log_in"))
     .and(warp::path::end())
-    .map(|| {
-      warp::http::Response::builder()
-        .header("Content-Type", "text/html; charset=utf-8")
-        .header("Foo", "Bar")
-        .body(
-          "<form method=\"post\" action=\"sign_in\">\n\
-      Username: <input type=\"text\" name=\"username\">\n\
-      Password: <input type=\"password\" name=\"password\">\n\
-      <input type=\"submit\" value=\"Submit\">
-      </form>
-      ")
-    });
+    .and(warp::body::content_length_limit(1024 << 4))
+    .and(warp::body::json())
+    .and(with_pool(Arc::clone(&pool)))
+    .and_then(log_in_handler);
+  info!("path \"/log_in\" created");
 
-  let routes = warp::any().and(post_route.or(hello_world).or(get_route));
+  // let get_route = root
+  //   .and(warp::get())
+  //   .and(warp::path("sign_in"))
+  //   .and(warp::path::end())
+  //   .map(|| {
+  //     warp::http::Response::builder()
+  //       .header("Content-Type", "text/html; charset=utf-8")
+  //       .header("Foo", "Bar")
+  //       .body(
+  //         "<form method=\"post\" action=\"sign_in\">\n\
+  //     Username: <input type=\"text\" name=\"username\">\n\
+  //     Password: <input type=\"password\" name=\"password\">\n\
+  //     <input type=\"submit\" value=\"Submit\">
+  //     </form>
+  //     ")
+  //   });
 
+  let routes = warp::any().and(hello_world.or(route_sign_up).or(route_log_in));
+  info!("all route registered");
+  info!("starting serve");
   warp::serve(routes)
     .tls()
     .cert_path(&options.cert)
@@ -125,23 +147,53 @@ async fn main() {
     .await;
 }
 
-async fn sign_up(info: SignUpInfo, mut pool: PPool) -> Result<impl warp::Reply, Infallible> {
-  let mut reply = SignUpResult { success: false, message: "".to_string() };
-  match pool.lock().await.borrow_mut().sign_in(info).await {
-    Ok(_) => {
-      reply.success = true;
-      reply.message = "".to_string();
-    }
-    Err(e) => {
-      reply.success = false;
-      reply.message = match e {
-        SignUpErr::UserExist => "user exist".to_string(),
+async fn sign_up_handler(info: SignUpInfo, mut pool: PPool) -> Result<impl warp::Reply, Infallible> {
+  let reply = match pool.lock().await.borrow_mut().sign_up(info).await {
+    Ok(()) => {
+      SignUpResult {
+        success: true,
+        message: "".to_string(),
       }
     }
-  }
+    Err(e) => {
+      SignUpResult {
+        success: false,
+        message: match e {
+          SignUpErr::UserExist => "user exist".to_string(),
+          _ => "unknown error".to_string(),
+        },
+      }
+    }
+  };
   Ok(warp::reply::json(&reply))
 }
 
-fn with_pool(pool: PPool) -> impl Filter<Extract = (PPool,), Error = Infallible> + Clone {
+async fn log_in_handler(info: LogInInfo, mut pool: PPool) -> Result<impl warp::Reply, Infallible> {
+  let reply = match pool.lock().await.borrow_mut().log_in(info).await {
+    Ok((user_id, access_token)) => {
+      LogInResult {
+        success: true,
+        message: "ok".to_string(),
+        user_id,
+        access_token: access_token.into(),
+      }
+    }
+    Err(e) => {
+      LogInResult {
+        success: false,
+        message: match e {
+          LogInErr::UserNotExist => { "user not exist" }
+          LogInErr::PasswdNotMatch => { "password not match" }
+          LogInErr::OtherErr => { "unknown error" }
+        }.to_string(),
+        user_id: 0,
+        access_token: "".to_string(),
+      }
+    }
+  };
+  Ok(warp::reply::json(&reply))
+}
+
+fn with_pool(pool: PPool) -> impl Filter<Extract=(PPool, ), Error=Infallible> + Clone {
   warp::any().map(move || pool.clone())
 }
