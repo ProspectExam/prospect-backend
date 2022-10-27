@@ -11,7 +11,7 @@ use log::{info, LevelFilter};
 use warp::Filter;
 
 use prospect_backend::types::LogInInfo;
-use prospect_backend::users::{self, ProspectSqlPool};
+use prospect_backend::database::{self, ProspectSqlPool};
 use prospect_backend::wechat::{types::*, handlers::*};
 
 #[tokio::main]
@@ -23,20 +23,23 @@ async fn main() {
 
   let options: Options = argh::from_env();
   info!("Prospect server_wx start");
+  ProspectSqlPool::init(
+    options.sql_user.clone(),
+    options.sql_passwd.clone(),
+    options.sql_addr.clone(),
+  ).await.unwrap();
   let pool = Arc::new(tokio::sync::Mutex::new(
-    users::new_pool(
+    ProspectSqlPool::new(
       options.sql_user.clone(),
       options.sql_passwd.clone(),
       options.sql_addr.clone(),
+      "prospect".to_string(),
       5,
     ).await.unwrap()
   ));
   info!("Create Sql connection pool OK");
 
-  let ctx = Context {
-    pool,
-    options: Arc::new(options),
-  };
+  let ctx = Context::new(pool, Arc::new(options));
   println!("{:?}", ctx);
 
   let root = warp::any();
@@ -54,6 +57,7 @@ async fn main() {
     });
   info!("Path \"/\" created");
 
+  // send_code route
   let route_send_code = root
     .and(warp::post())
     .and(warp::path("send_code"))
@@ -64,6 +68,7 @@ async fn main() {
     .and_then(send_code_handler);
   info!("Path \"/send_code\" created");
 
+  // waterfall route
   let route_waterfall = root
     .and(warp::get())
     .and(warp::path("waterfall"))
@@ -77,7 +82,8 @@ async fn main() {
   let routes = warp::any()
     .and(hello_world)
     .or(route_send_code)
-    .or(route_waterfall);
+    .or(route_waterfall)
+    .or(route_subscribe);
   info!("all route registered");
   info!("starting serve");
 

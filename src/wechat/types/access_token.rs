@@ -2,18 +2,24 @@ use serde::{Serialize, Deserialize};
 use chrono::{prelude::*, Duration};
 use crypto::digest::Digest;
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct AccessToken {
-  token: String,
-  expired: DateTime<Utc>,
+  pub token: String,
+  pub expired: DateTime<Utc>,
 }
 
 impl AccessToken {
-  pub fn new(union_id: &str) -> Self {
+  pub fn new(open_id: &str, union_id: &str) -> Self {
     let now_utc: DateTime<Utc> = Utc::now();
     let expired_utc = now_utc + Duration::days(3);
     let mut hasher = crypto::sha3::Sha3::sha3_256();
-    hasher.input_str(union_id);
+    let b = open_id.as_bytes()
+      .iter()
+      .chain(union_id.as_bytes().iter())
+      .chain(now_utc.timestamp().to_string().as_bytes().iter())
+      .map(|x| *x)
+      .collect::<Vec<u8>>();
+    hasher.input(&b);
     AccessToken {
       token: hasher.result_str(),
       expired: expired_utc,

@@ -13,8 +13,8 @@ use warp::Filter;
 use sqlx::{MySql, Pool};
 
 use prospect_backend::types::*;
-use prospect_backend::users;
-use prospect_backend::users::{LogInErr, ProspectSqlPool, SignUpErr};
+use prospect_backend::database;
+use prospect_backend::database::{LogInErr, ProspectSqlPool, SignUpErr};
 
 /// warp TLS server example
 #[derive(FromArgs)]
@@ -63,10 +63,11 @@ async fn main() {
   info!("Prospect server_tls start");
 
   let pool = Arc::new(tokio::sync::Mutex::new(
-    users::new_pool(
+    ProspectSqlPool::new(
       options.sql_user.clone(),
       options.sql_passwd.clone(),
       options.sql_addr,
+      "prospect".to_string(),
       5,
     ).await.unwrap())
   );

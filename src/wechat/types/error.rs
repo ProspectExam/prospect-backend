@@ -18,6 +18,10 @@ pub enum Error {
   UnionIdNotFound,
   /// Access token expired
   TokenExpired,
+  /// Reply from wechat server not contains openid
+  OpenIdNotFound,
+  /// Reply from internal database error
+  DatabaseErr,
   /// Unknown error
   UnknownErr,
 }
@@ -38,6 +42,8 @@ impl Into<i32> for Error {
       Error::NetworkToWechatErr => 102,
       Error::UnionIdNotFound => 103,
       Error::TokenExpired => 104,
+      Error::OpenIdNotFound => 105,
+      Error::DatabaseErr => 106,
       Error::UnknownErr => 999,
     }
   }
@@ -59,6 +65,8 @@ impl Into<String> for Error {
       Error::NetworkToWechatErr => "network to wechat error".into(),
       Error::UnionIdNotFound => "union id not found".into(),
       Error::TokenExpired => "access token expired".into(),
+      Error::OpenIdNotFound => "open id not found".into(),
+      Error::DatabaseErr => "database error".into(),
       Error::UnknownErr => "unknown error".into(),
     }
   }
@@ -80,6 +88,8 @@ impl From<i32> for Error {
       102 => Error::NetworkToWechatErr,
       103 => Error::UnionIdNotFound,
       104 => Error::TokenExpired,
+      105 => Error::OpenIdNotFound,
+      106 => Error::DatabaseErr,
       _ => Error::UnknownErr,
     }
   }

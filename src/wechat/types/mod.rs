@@ -73,12 +73,23 @@ pub use access_token::*;
 pub struct Context {
   pub pool: PPool,
   pub options: Arc<Options>,
+  pub(crate) session: Option<Code2SessionResponse>,
+}
+
+impl Context {
+  pub fn new(pool: PPool, options: Arc<Options>) -> Self {
+    Context {
+      pool,
+      options,
+      session: None,
+    }
+  }
 }
 
 /***********************************************/
 // wechart server json definitions
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub(crate) struct Code2SessionResponse {
   pub(crate) openid: Option<String>,
   pub(crate) session_key: Option<String>,
