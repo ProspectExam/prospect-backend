@@ -3,12 +3,14 @@ use std::future::Future;
 
 use crate::types::*;
 
-use log::info;
+use log::{info, warn};
 use reqwest::get;
 
 use super::types::*;
 use super::common::*;
+use super::types::AccessToken;
 
+/// handler for /send_code
 pub async fn send_code_handler(info: CodeInfo, ctx: Context) -> Result<impl warp::Reply, Infallible> {
   let reply = if info.access_token.is_empty() {
     // construct auth.code2Session request URL
@@ -19,34 +21,42 @@ pub async fn send_code_handler(info: CodeInfo, ctx: Context) -> Result<impl warp
       &info.code
     );
     match get_json::<Code2SessionResponse>(&code2session).await {
-      Ok(j) => {
+      Ok(mut j) => {
         info!("{:?} from wechat server", j);
-        // TODO: register cache, generate token then ret
-        CodeResult {
-          success: true,
-          message: "ok".to_string(),
-          access_token: "1234567890".to_string(),
+        info!("require code2Session ok for {}", info.code);
+        match j.unionid.take() {
+          None => {
+            warn!("no unionid in code2Session response");
+            match j.errcode.take() {
+              // no union_id in response, means wechat not verified
+              None => CodeResult::new(Err(Error::UnionIdNotFound)),
+              Some(err_id) => CodeResult::new(Err(err_id.into())),
+            }
+          }
+          Some(union_id) => {
+            // union_id got
+            // TODO: generate access token to memo then return
+            warn!("unionid in code2Session response: {}", union_id);
+            CodeResult::new(Ok(AccessToken::new())) }
         }
       }
       Err(e) => {
-        CodeResult {
-          success: false,
-          message: e.into(),
-          access_token: "".to_string(),
-        }
+        info!("require code2Session failed for {}", info.code);
+        CodeResult::new(Err(e))
       }
     }
   } else {
     // TODO: check cache
-    CodeResult {
-      success: false,
-      message: "".to_string(),
-      access_token: "".to_string(),
+    if AccessToken::from(info.access_token).is_valid() {
+      CodeResult::new(Ok(AccessToken::empty()))
+    } else {
+      CodeResult::new(Err(Error::TokenExpired))
     }
   };
   Ok(warp::reply::json(&reply))
 }
 
+// handler for
 pub async fn waterfall_handler(ctx: Context) -> Result<impl warp::Reply, Infallible> {
   Ok(warp::reply::reply())
 }

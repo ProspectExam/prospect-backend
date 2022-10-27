@@ -15,3 +15,7 @@ target/
 # Server cetificate
 *.pem
 *.der
+
+# Other
+serve_wx.sh
+src/bin/draft.rs
