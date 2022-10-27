@@ -1,23 +1,27 @@
 use serde::{Serialize, Deserialize};
 
+/// /send_code receive
 #[derive(Deserialize, Serialize, Debug)]
 pub struct SignUpInfo {
   pub username: String,
   pub password: String,
 }
 
+/// /send_code return
 #[derive(Deserialize, Serialize, Debug)]
 pub struct SignUpResult {
   pub success: bool,
   pub message: String,
 }
 
+/// /log_in receive
 #[derive(Deserialize, Serialize, Debug)]
 pub struct LogInInfo {
   pub username: String,
   pub password: String,
 }
 
+/// /log_in return
 #[derive(Deserialize, Serialize, Debug)]
 pub struct LogInResult {
   pub success: bool,
