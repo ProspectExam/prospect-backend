@@ -1,5 +1,5 @@
 extern crate core;
 
-pub mod users;
+pub mod database;
 pub mod types;
 pub mod wechat;

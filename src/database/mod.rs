@@ -1,13 +1,17 @@
-use crate::types::{SignUpInfo, SignUpResult, LogInInfo, LogInResult, AccessToken};
+use crate::types::{SignUpInfo, LogInInfo, AccessToken};
 
-use std::sync::Arc;
 use crypto::digest::Digest;
 use sqlx::mysql::MySqlPoolOptions;
-use sqlx::{MySql, Pool};
+use sqlx::{Acquire, Connection, MySql, MySqlConnection, Pool, query};
 
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use tokio::io::AsyncReadExt;
+
+pub mod wechat_op;
+
+// database operation error definitions
+#[derive(Copy, Clone, Debug)]
+pub enum Error {}
 
 #[derive(Debug)]
 pub enum SignUpErr {
@@ -48,17 +52,40 @@ pub struct ProspectSqlPool {
   rng: StdRng,
 }
 
-pub async fn new_pool(user: String, pass: String, addr: String, max: u32) -> Result<ProspectSqlPool, sqlx::Error> {
-  let pool = MySqlPoolOptions::new()
-    .max_connections(max)
-    .connect(&format!("mysql://{}:{}@{}/prospect", user, pass, addr)).await?;
-  Ok(ProspectSqlPool {
-    pool,
-    rng: StdRng::from_entropy(),
-  })
-}
-
 impl ProspectSqlPool {
+  pub async fn new(user: String, pass: String, addr: String, database: String, max: u32) -> Result<ProspectSqlPool, sqlx::Error> {
+    let pool = MySqlPoolOptions::new()
+      .max_connections(max)
+      .connect(&format!("mysql://{}:{}@{}/{}", user, pass, addr, database)).await?;
+    Ok(ProspectSqlPool {
+      pool,
+      rng: StdRng::from_entropy(),
+    })
+  }
+
+  /// initialize necessary databases and tables backend needed.
+  pub async fn init(user: String, pass: String, addr: String) -> Result<(), sqlx::Error> {
+    let mut conn = MySqlConnection::connect(&format!("mysql://{}:{}@{}", user, pass, addr)).await?;
+    let mut tx = sqlx::Connection::begin(&mut conn).await?;
+    query("create database if not exists Prospect").execute(&mut tx).await?;
+    query("create database if not exists UniUserMap").execute(&mut tx).await?;
+    query("create table if not exists Prospect.tokenMap (\
+           open_id varchar(255) not null ,\
+           access_token blob(256) not null ,\
+           expired_time timestamp not null ,\
+           primary key (open_id)\
+           )")
+      .execute(&mut tx).await?;
+    query("create table if not exists Prospect.Open2Union (\
+           open_id varchar(255) not null ,\
+           union_id varchar(255) not null ,\
+           primary key (open_id)\
+           );")
+      .execute(&mut tx).await?;
+    tx.commit();
+    Ok(())
+  }
+
   pub async fn sign_up(&mut self, info: SignUpInfo) -> Result<(), SignUpErr> {
     let r: Result<(u32, ), _> = sqlx::query_as("select user_id from UserAuth where username = ?")
       .bind(&info.username)
