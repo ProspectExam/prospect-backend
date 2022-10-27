@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use serde::{Serialize, Deserialize};
 use argh::FromArgs;
-use crate::users::ProspectSqlPool;
+use crate::database::ProspectSqlPool;
 
 pub type PPool = Arc<tokio::sync::Mutex<ProspectSqlPool>>;
 
@@ -52,6 +52,8 @@ mod source;
 
 mod error;
 
+mod access_token;
+
 /***********************************************/
 // export
 pub use code::*;
@@ -62,6 +64,8 @@ pub use source::*;
 
 pub use error::*;
 
+pub use access_token::*;
+
 /***********************************************/
 // mini-program-server communication api
 
@@ -69,40 +73,6 @@ pub use error::*;
 pub struct Context {
   pub pool: PPool,
   pub options: Arc<Options>,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct AccessToken;
-
-impl AccessToken {
-  pub fn new() -> Self {
-    AccessToken
-  }
-}
-
-impl AccessToken {
-  pub fn empty() -> Self {
-    // TODO:
-    AccessToken
-  }
-
-  pub fn is_valid(&self) -> bool {
-    true
-  }
-}
-
-impl From<String> for AccessToken {
-  fn from(value: String) -> Self {
-    // TODO: todo!()
-    return AccessToken;
-  }
-}
-
-impl Into<String> for AccessToken {
-  fn into(self) -> String {
-    // TODO: todo!()
-    "1234567890".to_string()
-  }
 }
 
 /***********************************************/
