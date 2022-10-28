@@ -2,7 +2,6 @@
 #![feature(async_closure)]
 
 use std::borrow::BorrowMut;
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::net::SocketAddr;
 use std::convert::Infallible;
@@ -10,11 +9,9 @@ use std::convert::Infallible;
 use argh::FromArgs;
 use log::{info, LevelFilter};
 use warp::Filter;
-use sqlx::{MySql, Pool};
 
 use prospect_backend::types::*;
-use prospect_backend::database;
-use prospect_backend::database::{LogInErr, ProspectSqlPool, SignUpErr};
+use prospect_backend::database::ProspectSqlPool;
 
 /// warp TLS server example
 #[derive(FromArgs)]
@@ -147,7 +144,7 @@ async fn main() {
     .await;
 }
 
-async fn sign_up_handler(info: SignUpInfo, mut pool: PPool) -> Result<impl warp::Reply, Infallible> {
+async fn sign_up_handler(info: SignUpInfo, pool: PPool) -> Result<impl warp::Reply, Infallible> {
   let reply = match pool.lock().await.borrow_mut().sign_up(info).await {
     Ok(()) => {
       SignUpResult {
@@ -165,7 +162,7 @@ async fn sign_up_handler(info: SignUpInfo, mut pool: PPool) -> Result<impl warp:
   Ok(warp::reply::json(&reply))
 }
 
-async fn log_in_handler(info: LogInInfo, mut pool: PPool) -> Result<impl warp::Reply, Infallible> {
+async fn log_in_handler(info: LogInInfo, pool: PPool) -> Result<impl warp::Reply, Infallible> {
   let reply = match pool.lock().await.borrow_mut().log_in(info).await {
     Ok((user_id, access_token)) => {
       LogInResult {

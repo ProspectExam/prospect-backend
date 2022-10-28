@@ -1,24 +1,21 @@
 #![feature(addr_parse_ascii)]
 #![feature(async_closure)]
 
-use std::borrow::BorrowMut;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::convert::Infallible;
 
-use argh::FromArgs;
 use log::{info, LevelFilter};
 use warp::Filter;
 
-use prospect_backend::types::LogInInfo;
-use prospect_backend::database::{self, ProspectSqlPool};
+use prospect_backend::database::ProspectSqlPool;
 use prospect_backend::wechat::{types::*, handlers::*};
 
 #[tokio::main]
 async fn main() {
   pretty_env_logger::formatted_timed_builder()
     .format_timestamp_secs()
-    .filter_level(LevelFilter::Debug)
+    .filter_level(LevelFilter::Info)
     .init();
 
   let options: Options = argh::from_env();

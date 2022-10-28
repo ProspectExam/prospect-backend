@@ -4,7 +4,7 @@ use crate::types::{SignUpInfo, LogInInfo, AccessToken};
 
 use crypto::digest::Digest;
 use sqlx::mysql::MySqlPoolOptions;
-use sqlx::{Acquire, Connection, MySql, MySqlConnection, Pool, query};
+use sqlx::{Connection, MySql, MySqlConnection, Pool, query};
 
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};

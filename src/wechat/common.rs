@@ -1,6 +1,6 @@
 use reqwest::get;
 
-use serde::{Serialize, Deserialize};
+use serde::Deserialize;
 
 use super::types::*;
 

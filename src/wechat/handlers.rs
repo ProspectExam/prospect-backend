@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::convert::Infallible;
 
 use crate::types::*;
@@ -20,7 +19,7 @@ pub async fn send_code_handler(info: CodeInfo, mut ctx: Context) -> Result<impl 
       &info.code
     );
     match get_json::<Code2SessionResponse>(&code2session).await {
-      Ok(mut j) => {
+      Ok(j) => {
         info!("{:?} from wechat server", j);
         info!("require code2Session ok for {}", info.code);
         match j.errcode {
