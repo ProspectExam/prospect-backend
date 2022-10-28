@@ -79,6 +79,17 @@ async fn main() {
     .and_then(waterfall_handler);
   info!("Path \"/waterfall\" created");
 
+  // subscribe route
+  let route_subscribe = root
+    .and(warp::post())
+    .and(warp::path("subscribe"))
+    .and(warp::path::end())
+    .and(warp::body::content_length_limit(4096))
+    .and(warp::body::json())
+    .and(with_context(ctx.clone()))
+    .and_then(subscribe_handler);
+  info!("Path \"/subscribe\" created");
+
   let routes = warp::any()
     .and(hello_world)
     .or(route_send_code)
