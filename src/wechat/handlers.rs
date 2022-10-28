@@ -23,25 +23,28 @@ pub async fn send_code_handler(info: CodeInfo, mut ctx: Context) -> Result<impl 
       Ok(mut j) => {
         info!("{:?} from wechat server", j);
         info!("require code2Session ok for {}", info.code);
-        if j.openid.is_some() && j.unionid.is_some() {
-          ctx.session = Some(j.clone());
-          let open_id = j.openid.unwrap();
-          let union_id = j.unionid.unwrap();
-          let token = AccessToken::new(&open_id, &union_id);
-          match ctx.pool.wechat_record_token(token.clone(), ctx.clone()).await {
-            Ok(()) => {
-              info!("record token for {} ok", open_id);
-              CodeResult::new(Ok(token.into()))
+        match j.errcode {
+          Some(0) | None => if j.openid.is_some() && j.unionid.is_some() {
+            ctx.session = Some(j.clone());
+            let open_id = j.openid.unwrap();
+            let union_id = j.unionid.unwrap();
+            let token = AccessToken::new(&open_id, &union_id);
+            match ctx.pool.wechat_record_token(token.clone(), ctx.clone()).await {
+              Ok(()) => {
+                info!("record token for {} ok", open_id);
+                CodeResult::new(Ok(token.into()))
+              }
+              Err(_) => {
+                warn!("record token failed for {}", open_id);
+                CodeResult::new(Err(Error::DatabaseErr))
+              }
             }
-            Err(_) => {
-              warn!("record token failed for {}", open_id);
-              CodeResult::new(Err(Error::DatabaseErr))
-            }
-          }
-        } else if j.openid.is_none() {
-          CodeResult::new(Err(Error::OpenIdNotFound))
-        } else {
-          CodeResult::new(Err(Error::UnionIdNotFound))
+          } else if j.openid.is_none() {
+            CodeResult::new(Err(Error::OpenIdNotFound))
+          } else {
+            CodeResult::new(Err(Error::UnionIdNotFound))
+          },
+          Some(err_code) => CodeResult::new(Err(err_code.into()))
         }
       }
       Err(e) => {

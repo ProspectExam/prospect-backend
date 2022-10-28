@@ -69,22 +69,22 @@ impl ProspectSqlPool {
   pub async fn init(user: String, pass: String, addr: String) -> Result<(), sqlx::Error> {
     let mut conn = MySqlConnection::connect(&format!("mysql://{}:{}@{}", user, pass, addr)).await?;
     let mut tx = sqlx::Connection::begin(&mut conn).await?;
-    query("create database if not exists Prospect").execute(&mut tx).await?;
-    query("create database if not exists UniUserMap").execute(&mut tx).await?;
-    query("create table if not exists Prospect.tokenMap (\
-           open_id varchar(255) not null ,\
-           access_token blob(256) not null ,\
-           expired_time timestamp not null ,\
-           primary key (open_id)\
+    query("CREATE DATABASE IF NOT EXISTS Prospect").execute(&mut tx).await?;
+    query("CREATE DATABASE IF NOT EXISTS UniUserMap").execute(&mut tx).await?;
+    query("CREATE TABLE IF NOT EXISTS Prospect.tokenMap (\
+           open_id VARCHAR(255) NOT NULL ,\
+           access_token BLOB(256) NOT NULL ,\
+           expired_time TIMESTAMP NOT NULL ,\
+           PRIMARY KEY (open_id)\
            )")
       .execute(&mut tx).await?;
-    query("create table if not exists Prospect.Open2Union (\
-           open_id varchar(255) not null ,\
-           union_id varchar(255) not null ,\
-           primary key (open_id)\
+    query("CREATE TABLE IF NOT EXISTS Prospect.Open2Union (\
+           open_id VARCHAR(255) NOT NULL ,\
+           union_id VARCHAR(255) NOT NULL ,\
+           PRIMARY KEY (open_id)\
            );")
       .execute(&mut tx).await?;
-    tx.commit();
+    tx.commit().await?;
     Ok(())
   }
 
