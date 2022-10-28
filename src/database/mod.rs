@@ -1,3 +1,5 @@
+use std::borrow::BorrowMut;
+use std::sync::Arc;
 use crate::types::{SignUpInfo, LogInInfo, AccessToken};
 
 use crypto::digest::Digest;
@@ -46,10 +48,10 @@ impl Into<String> for LogInErr {
   }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ProspectSqlPool {
   pool: Pool<MySql>,
-  rng: StdRng,
+  rng: Arc<tokio::sync::Mutex<StdRng>>,
 }
 
 impl ProspectSqlPool {
@@ -59,7 +61,7 @@ impl ProspectSqlPool {
       .connect(&format!("mysql://{}:{}@{}/{}", user, pass, addr, database)).await?;
     Ok(ProspectSqlPool {
       pool,
-      rng: StdRng::from_entropy(),
+      rng: Arc::new(tokio::sync::Mutex::new(StdRng::from_entropy())),
     })
   }
 
@@ -96,7 +98,7 @@ impl ProspectSqlPool {
         Err(SignUpErr::UserExist)
       }
       Err(sqlx::Error::RowNotFound) => {
-        let (salt, pass_and_salt_hash) = self.KDF(&info.password);
+        let (salt, pass_and_salt_hash) = self.KDF(&info.password).await;
         // insert a user message to database
         sqlx::query("insert into UserAuth (username, salt, hash) values (?, ?, ?)")
           .bind(&info.username)
@@ -138,8 +140,8 @@ impl ProspectSqlPool {
     }
   }
 
-  fn KDF(&mut self, passwd: &str) -> ([u8; 8], String) {
-    let salt = self.rng.gen::<[u8; 8]>();
+  async fn KDF(&mut self, passwd: &str) -> ([u8; 8], String) {
+    let salt = self.rng.lock().await.borrow_mut().gen::<[u8; 8]>();
     (salt, Self::KDF_with_salt(&salt, passwd))
   }
 

@@ -28,15 +28,13 @@ async fn main() {
     options.sql_passwd.clone(),
     options.sql_addr.clone(),
   ).await.unwrap();
-  let pool = Arc::new(tokio::sync::Mutex::new(
-    ProspectSqlPool::new(
-      options.sql_user.clone(),
-      options.sql_passwd.clone(),
-      options.sql_addr.clone(),
-      "prospect".to_string(),
-      5,
-    ).await.unwrap()
-  ));
+  let pool = ProspectSqlPool::new(
+    options.sql_user.clone(),
+    options.sql_passwd.clone(),
+    options.sql_addr.clone(),
+    "prospect".to_string(),
+    5,
+  ).await.unwrap();
   info!("Create Sql connection pool OK");
 
   let ctx = Context::new(pool, Arc::new(options));

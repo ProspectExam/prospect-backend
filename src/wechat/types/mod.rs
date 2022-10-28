@@ -4,7 +4,8 @@ use serde::{Serialize, Deserialize};
 use argh::FromArgs;
 use crate::database::ProspectSqlPool;
 
-pub type PPool = Arc<tokio::sync::Mutex<ProspectSqlPool>>;
+// pub type PPool = Arc<tokio::sync::Mutex<ProspectSqlPool>>;
+pub type PPool = ProspectSqlPool;
 
 /// serve_wx param parse
 #[derive(Debug, FromArgs)]

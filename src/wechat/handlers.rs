@@ -28,7 +28,7 @@ pub async fn send_code_handler(info: CodeInfo, mut ctx: Context) -> Result<impl 
           let open_id = j.openid.unwrap();
           let union_id = j.unionid.unwrap();
           let token = AccessToken::new(&open_id, &union_id);
-          match ctx.pool.lock().await.borrow_mut().wechat_record_token(token.clone(), ctx.clone()).await {
+          match ctx.pool.wechat_record_token(token.clone(), ctx.clone()).await {
             Ok(()) => {
               info!("record token for {} ok", open_id);
               CodeResult::new(Ok(token.into()))
