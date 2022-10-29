@@ -88,7 +88,7 @@ impl ProspectSqlPool {
     Ok(())
   }
 
-  pub async fn sign_up(&mut self, info: SignUpInfo) -> Result<(), SignUpErr> {
+  pub async fn sign_up(&self, info: SignUpInfo) -> Result<(), SignUpErr> {
     let r: Result<(u32, ), _> = sqlx::query_as("select user_id from UserAuth where username = ?")
       .bind(&info.username)
       .fetch_one(&self.pool)
@@ -114,7 +114,7 @@ impl ProspectSqlPool {
     }
   }
 
-  pub async fn log_in(&mut self, info: LogInInfo) -> Result<(u32, AccessToken), LogInErr> {
+  pub async fn log_in(&self, info: LogInInfo) -> Result<(u32, AccessToken), LogInErr> {
     let r: Result<(u32, String, Vec<u8>, Vec<u8>), _> =
       sqlx::query_as("select user_id, username, salt, hash from UserAuth where username = ?")
         .bind(&info.username)
@@ -140,7 +140,7 @@ impl ProspectSqlPool {
     }
   }
 
-  async fn KDF(&mut self, passwd: &str) -> ([u8; 8], String) {
+  async fn KDF(&self, passwd: &str) -> ([u8; 8], String) {
     let salt = self.rng.lock().await.borrow_mut().gen::<[u8; 8]>();
     (salt, Self::KDF_with_salt(&salt, passwd))
   }
