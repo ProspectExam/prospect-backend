@@ -31,7 +31,7 @@ pub async fn send_code_handler(info: CodeInfo, mut ctx: Context) -> Result<impl 
             match ctx.pool.wechat_record_token(token.clone(), ctx.clone()).await {
               Ok(()) => {
                 info!("record token for {} ok", open_id);
-                CodeResult::new(Ok(token.into()))
+                CodeResult::new(Ok((open_id, token)))
               }
               Err(_) => {
                 warn!("record token failed for {}", open_id);
@@ -52,11 +52,12 @@ pub async fn send_code_handler(info: CodeInfo, mut ctx: Context) -> Result<impl 
       }
     }
   } else {
-    // TODO: check cache
-    if AccessToken::from(info.access_token).is_valid() {
-      CodeResult::new(Ok(AccessToken::empty()))
-    } else {
-      CodeResult::new(Err(Error::TokenExpired))
+    match ctx.pool.valid_token_and_update(
+      AccessToken::from(info.access_token),
+      &info.open_id,
+    ).await {
+      Ok(token) => CodeResult::new(Ok((info.open_id, token))),
+      Err(_) => CodeResult::new(Err(Error::TokenExpired)),
     }
   };
   Ok(warp::reply::json(&reply))
