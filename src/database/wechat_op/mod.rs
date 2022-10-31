@@ -5,6 +5,28 @@ use chrono::{prelude::*, Duration};
 use crate::wechat::types::{AccessToken, Context};
 use super::ProspectSqlPool;
 
+// impl for public wechat operation
+impl ProspectSqlPool {
+  pub async fn is_valid_access_token(&self, open_id: &str, token: AccessToken) -> Result<bool, sqlx::Error> {
+    let sql =
+      "SELECT COUNT(*) \
+       FROM Prospect.tokenMap \
+       WHERE open_id = ? \
+       AND Prospect.tokenMap.access_token = ? \
+       AND Prospect.tokenMap.expired_time > ?";
+    let r: (u32, ) = sqlx::query_as(sql)
+      .bind(open_id)
+      .bind(&token.token)
+      .bind(Utc::now())
+      .fetch_one(&self.pool).await?;
+    match r {
+      (0, ) => Ok(false),
+      _ => Ok(true),
+    }
+  }
+}
+
+// impl for send_code
 impl ProspectSqlPool {
   pub async fn wechat_record_token(&self, token: AccessToken, ctx: Context) -> Result<(), sqlx::Error> {
     self.record_token_helper(
@@ -70,5 +92,13 @@ impl ProspectSqlPool {
     tx.commit().await?;
 
     Ok(new_token)
+  }
+}
+
+// impl for subscribe
+impl ProspectSqlPool {
+  pub async fn wechat_subscribe(&self, open_id: &str, ctx: Context) -> Result<(), sqlx::Error> {
+    // TODO:
+    Ok(())
   }
 }

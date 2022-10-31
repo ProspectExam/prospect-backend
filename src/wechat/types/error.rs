@@ -1,11 +1,23 @@
 #[derive(Copy, Clone, Debug)]
 pub enum Error {
   // wechat defined error
+
+  // 0
   Success,
 
+  // -1
   WechatServerBusy,
+  // 40001
+  MismatchedAppSec,
+  // 40002
+  GetParamInvalid,
+  // 40013
+  InvalidAppId,
+  // 40029
   InvalidCode,
+  // 45011
   RequestTooFast,
+  // 40226
   HighRiskUser,
 
   // self defined error
@@ -33,6 +45,9 @@ impl Into<i32> for Error {
       Error::Success => 0,
 
       Error::WechatServerBusy => -1,
+      Error::MismatchedAppSec => 40001,
+      Error::GetParamInvalid => 40002,
+      Error::InvalidAppId => 40013,
       Error::InvalidCode => 40029,
       Error::RequestTooFast => 45011,
       Error::HighRiskUser => 40226,
@@ -56,6 +71,9 @@ impl Into<String> for Error {
       Error::Success => "success".into(),
 
       Error::WechatServerBusy => "wechat server busy".into(),
+      Error::MismatchedAppSec => "mismatched app secret".into(),
+      Error::GetParamInvalid => "get method provided invalid param".into(),
+      Error::InvalidAppId => "invalid app id".into(),
       Error::InvalidCode => "invalid code".into(),
       Error::RequestTooFast => "request too fast".into(),
       Error::HighRiskUser => "high risk user".into(),
@@ -79,6 +97,9 @@ impl From<i32> for Error {
       0 => Error::Success,
 
       -1 => Error::WechatServerBusy,
+      40001 => Error::MismatchedAppSec,
+      40002 => Error::GetParamInvalid,
+      40013 => Error::InvalidAppId,
       40029 => Error::InvalidCode,
       45011 => Error::RequestTooFast,
       40226 => Error::HighRiskUser,

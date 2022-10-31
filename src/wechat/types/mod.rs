@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use serde::{Serialize, Deserialize};
 use argh::FromArgs;
@@ -54,6 +54,7 @@ mod source;
 mod error;
 
 mod access_token;
+mod context;
 
 /***********************************************/
 // export
@@ -66,30 +67,16 @@ pub use source::*;
 pub use error::*;
 
 pub use access_token::*;
+pub use context::*;
 
 /***********************************************/
 // mini-program-server communication api
 
-#[derive(Debug, Clone)]
-pub struct Context {
-  pub pool: PPool,
-  pub options: Arc<Options>,
-  pub(crate) session: Option<Code2SessionResponse>,
-}
-
-impl Context {
-  pub fn new(pool: PPool, options: Arc<Options>) -> Self {
-    Context {
-      pool,
-      options,
-      session: None,
-    }
-  }
-}
 
 /***********************************************/
 // wechart server json definitions
 
+/// Code2Session response json struct.
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub(crate) struct Code2SessionResponse {
   pub(crate) openid: Option<String>,
@@ -99,3 +86,11 @@ pub(crate) struct Code2SessionResponse {
   pub(crate) errmsg: Option<String>,
 }
 
+/// getAccessToken response json struct.
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub(crate) struct GetAccessTokenResponse {
+  pub(crate) access_token: Option<String>,
+  pub(crate) expires_in: Option<u32>,
+  pub(crate) errcode: Option<i32>,
+  pub(crate) errmsg: Option<String>,
+}

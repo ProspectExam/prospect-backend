@@ -11,14 +11,7 @@ use super::types::AccessToken;
 /// handler for /send_code
 pub async fn send_code_handler(info: CodeInfo, mut ctx: Context) -> Result<impl warp::Reply, Infallible> {
   let reply = if info.access_token.is_empty() {
-    // construct auth.code2Session request URL
-    let code2session = format!(
-      "https://api.weixin.qq.com/sns/jscode2session?appid={}&secret={}&js_code={}&grant_type=authorization_code",
-      &ctx.options.wx_appid,
-      &ctx.options.wx_appsecret,
-      &info.code
-    );
-    match get_json::<Code2SessionResponse>(&code2session).await {
+    match code2session(&ctx.options.wx_appid, &ctx.options.wx_appsecret, &info.code).await {
       Ok(j) => {
         info!("{:?} from wechat server", j);
         info!("require code2Session ok for {}", info.code);
@@ -70,7 +63,29 @@ pub async fn waterfall_handler(ctx: Context) -> Result<impl warp::Reply, Infalli
 }
 
 // handler for subscribe
-pub async fn subscribe_handler(info: SubscribeInfo, ctx: Context) -> Result<impl warp::Reply, Infallible> {
-  // TODO: todo!()
-  Ok(warp::reply::reply())
+pub async fn subscribe_handler(info: SubscribeInfo, mut ctx: Context) -> Result<impl warp::Reply, Infallible> {
+  let reply = match ctx.pool.is_valid_access_token(&info.open_id, info.access_token.into()).await {
+    Ok(true) => {
+      match ctx.pool.wechat_subscribe(&info.open_id, ctx.clone()).await {
+        Ok(()) => SubscribeResult::new(Ok(())),
+        Err(_) => SubscribeResult::new(Err(Error::DatabaseErr)),
+      }
+    }
+    Ok(false) => { SubscribeResult::new(Err(Error::TokenExpired)) }
+    Err(_) => { SubscribeResult::new(Err(Error::DatabaseErr)) }
+  };
+  Ok(warp::reply::json(&reply))
+}
+
+async fn notify_subscription() {
+  // TODO:
+  // ctx.session = Some(Code2SessionResponse {
+  //   openid: Some(info.open_id),
+  //   session_key: None,
+  //   unionid: None,
+  //   errcode: None,
+  //   errmsg: None
+  // });
+  // let wechat_access_token = get_access_token(ctx.clone());
+  unimplemented!()
 }
