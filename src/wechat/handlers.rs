@@ -109,5 +109,13 @@ async fn notify_subscription() {
 }
 
 pub async fn get_university_info_handler(ctx: Context) -> Result<impl warp::Reply, Infallible> {
-  Ok(warp::reply::reply())
+  let mut m = std::collections::HashMap::<String, u32>::new();
+  m.insert("Tsinghua University".into(), 0);
+  m.insert("Peking University".into(), 1);
+  m.insert("TongJi University".into(), 2);
+  m.insert("Minzu University of China".into(), 3);
+  let reply = UniversityResult {
+    universities: m,
+  };
+  Ok(warp::reply::json(&reply))
 }
