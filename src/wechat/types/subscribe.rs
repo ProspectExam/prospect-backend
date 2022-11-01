@@ -3,7 +3,8 @@ use super::Error;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct SubscribeInfo {
-  pub school_code: Vec<u32>,
+  pub school_code: u32,
+  pub department_code: u32,
   pub open_id: String,
   pub access_token: String,
 }
