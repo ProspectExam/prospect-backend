@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
-struct UniversityResult {
-  universities: HashMap<String, u32>,
+pub struct UniversityResult {
+  pub universities: HashMap<String, u32>,
 }
 
-struct GetDepartmentInfo {
-  university_code: u32,
+pub struct GetDepartmentInfo {
+  pub university_code: u32,
 }
 
-struct DepartmentInfo {
-  departments: HashMap<String, u32>,
+pub struct DepartmentInfo {
+  pub departments: HashMap<String, u32>,
 }
