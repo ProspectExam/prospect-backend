@@ -9,13 +9,13 @@ pub struct AccessToken {
 }
 
 impl AccessToken {
-  pub fn new(open_id: &str, union_id: &str) -> Self {
+  /// Generate an access token from open_id and current timestamp.
+  pub fn new(open_id: &str) -> Self {
     let now_utc: DateTime<Utc> = Utc::now();
     let expired_utc = now_utc + Duration::days(3);
     let mut hasher = crypto::sha3::Sha3::sha3_256();
     let b = open_id.as_bytes()
       .iter()
-      .chain(union_id.as_bytes().iter())
       .chain(now_utc.timestamp().to_string().as_bytes().iter())
       .map(|x| *x)
       .collect::<Vec<u8>>();

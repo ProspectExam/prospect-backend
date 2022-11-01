@@ -78,12 +78,6 @@ impl ProspectSqlPool {
            PRIMARY KEY (open_id)\
            )")
       .execute(&mut tx).await?;
-    query("CREATE TABLE IF NOT EXISTS Prospect.Open2Union (\
-           open_id VARCHAR(255) NOT NULL ,\
-           union_id VARCHAR(255) NOT NULL ,\
-           PRIMARY KEY (open_id)\
-           );")
-      .execute(&mut tx).await?;
     tx.commit().await?;
     Ok(())
   }

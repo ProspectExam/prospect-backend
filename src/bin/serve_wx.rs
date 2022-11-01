@@ -29,7 +29,7 @@ async fn main() {
     options.sql_user.clone(),
     options.sql_passwd.clone(),
     options.sql_addr.clone(),
-    "prospect".to_string(),
+    "Prospect".to_string(),
     5,
   ).await.unwrap();
   info!("Create Sql connection pool OK");

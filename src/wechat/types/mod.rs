@@ -81,7 +81,6 @@ pub use context::*;
 pub(crate) struct Code2SessionResponse {
   pub(crate) openid: Option<String>,
   pub(crate) session_key: Option<String>,
-  pub(crate) unionid: Option<String>,
   pub(crate) errcode: Option<i32>,
   pub(crate) errmsg: Option<String>,
 }

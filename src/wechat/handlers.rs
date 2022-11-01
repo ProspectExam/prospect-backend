@@ -16,11 +16,10 @@ pub async fn send_code_handler(info: CodeInfo, mut ctx: Context) -> Result<impl 
         info!("{:?} from wechat server", j);
         info!("require code2Session ok for {}", info.code);
         match j.errcode {
-          Some(0) | None => if j.openid.is_some() && j.unionid.is_some() {
+          Some(0) | None => if j.openid.is_some() {
             ctx.session = Some(j.clone());
             let open_id = j.openid.unwrap();
-            let union_id = j.unionid.unwrap();
-            let token = AccessToken::new(&open_id, &union_id);
+            let token = AccessToken::new(&open_id);
             match ctx.pool.wechat_record_token(token.clone(), ctx.clone()).await {
               Ok(()) => {
                 info!("record token for {} ok", open_id);
@@ -31,11 +30,9 @@ pub async fn send_code_handler(info: CodeInfo, mut ctx: Context) -> Result<impl 
                 CodeResult::new(Err(Error::DatabaseErr))
               }
             }
-          } else if j.openid.is_none() {
-            CodeResult::new(Err(Error::OpenIdNotFound))
           } else {
-            CodeResult::new(Err(Error::UnionIdNotFound))
-          },
+            CodeResult::new(Err(Error::OpenIdNotFound))
+          }
           Some(err_code) => CodeResult::new(Err(err_code.into()))
         }
       }
