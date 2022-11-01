@@ -86,3 +86,7 @@ async fn notify_subscription() {
   // let wechat_access_token = get_access_token(ctx.clone());
   unimplemented!()
 }
+
+pub async fn get_university_info_handler(ctx: Context) -> Result<impl warp::Reply, Infallible> {
+  Ok(warp::reply::reply())
+}

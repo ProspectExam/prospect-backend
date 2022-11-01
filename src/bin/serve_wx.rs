@@ -85,11 +85,21 @@ async fn main() {
     .and_then(subscribe_handler);
   info!("Path \"/subscribe\" created");
 
+  // get_university_info
+  let route_get_university_info = root
+    .and(warp::get())
+    .and(warp::path("get_university_info"))
+    .and(warp::path::end())
+    .and(with_context(ctx.clone()))
+    .and_then(get_university_info_handler);
+  info!("Path \"/get_university_info\" created");
+
   let routes = warp::any()
     .and(hello_world)
     .or(route_send_code)
     .or(route_waterfall)
-    .or(route_subscribe);
+    .or(route_subscribe)
+    .or(route_get_university_info);
   info!("all route registered");
   info!("starting serve");
 
