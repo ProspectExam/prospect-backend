@@ -50,6 +50,7 @@ mod waterfall;
 mod subscribe;
 mod post;
 mod source;
+mod university;
 
 mod error;
 
@@ -63,6 +64,7 @@ pub use waterfall::*;
 pub use subscribe::*;
 pub use post::*;
 pub use source::*;
+pub use university::*;
 
 pub use error::*;
 
