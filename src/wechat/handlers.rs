@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use std::convert::Infallible;
+use std::future::Future;
 
 use crate::types::*;
 
@@ -72,13 +74,13 @@ pub async fn waterfall_handler(ctx: Context) -> Result<impl warp::Reply, Infalli
 // handler for subscribe
 pub async fn subscribe_handler(info: SubscribeInfo, mut ctx: Context) -> Result<impl warp::Reply, Infallible> {
   info!("a request with info: {:?}", info);
-  let reply = match ctx.pool.is_valid_access_token(&info.open_id, info.access_token.into()).await {
+  let reply = match ctx.pool.is_valid_access_token(&info.open_id, info.access_token.clone().into()).await {
     Ok(true) => {
       info!("access token valid, subscribe {}.{} for {}",
-        info.school_code,
-        info.department_code,
-        info.open_id);
-      match ctx.pool.wechat_subscribe(&info.open_id, ctx.clone()).await {
+        &info.school_code,
+        &info.department_code,
+        &info.open_id);
+      match ctx.pool.wechat_subscribe(info, ctx.clone()).await {
         Ok(()) => SubscribeResult::new(Ok(())),
         Err(_) => SubscribeResult::new(Err(Error::DatabaseErr)),
       }
@@ -108,6 +110,24 @@ async fn notify_subscription() {
   unimplemented!()
 }
 
-pub async fn get_university_info_handler(ctx: Context) -> Result<impl warp::Reply, Infallible> {
-  Ok(warp::reply::reply())
+pub async fn get_university_handler(ctx: Context) -> Result<impl warp::Reply, Infallible> {
+  let reply = {
+    match ctx.pool.wechat_get_university().await {
+      Ok(hashmap) => UniversityResult::new(Ok(hashmap)),
+      Err(sqlx::Error::RowNotFound) => UniversityResult::new(Err(Error::InvalidJsonRequest)),
+      Err(_) => UniversityResult::new(Err(Error::DatabaseErr)),
+    }
+  };
+  Ok(warp::reply::json(&reply))
+}
+
+pub async fn get_department_handler(info: GetDepartmentInfo, ctx: Context) -> Result<impl warp::Reply, Infallible> {
+  let reply = {
+    match ctx.pool.wechat_get_department(info.university_code).await {
+      Ok(hashmap) => DepartmentResult::new(Ok(hashmap)),
+      Err(sqlx::Error::RowNotFound) => DepartmentResult::new(Err(Error::InvalidJsonRequest)),
+      Err(_) => DepartmentResult::new(Err(Error::DatabaseErr)),
+    }
+  };
+  Ok(warp::reply::json(&reply))
 }
