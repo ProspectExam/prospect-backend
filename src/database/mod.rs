@@ -97,8 +97,9 @@ impl ProspectSqlPool {
 
   pub async fn add_university(&self, uni_name: &str, name: &str) -> Result<(), sqlx::Error> {
     let mut tx = self.pool.begin().await?;
+    let uni_name = format!("{}_university", uni_name);
     query("INSERT INTO UniUserMap.university (uni_name, name) VALUES (?, ?)")
-      .bind(uni_name)
+      .bind(&uni_name)
       .bind(name)
       .execute(&mut tx).await?;
     query(&format!(
@@ -109,24 +110,67 @@ impl ProspectSqlPool {
        PRIMARY KEY (id) ,\
        UNIQUE KEY (uni_name) \
        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", uni_name
-    ))
-      .bind(uni_name)
-      .execute(&mut tx).await?;
+    )).execute(&mut tx).await?;
     tx.commit().await?;
     Ok(())
   }
 
   pub async fn add_department(&self, university_id: u32, uni_name: &str, name: &str) -> Result<(), sqlx::Error> {
+    let mut tx = self.pool.begin().await?;
     let university_uni_name: (String, ) =
       sqlx::query_as("SELECT uni_name FROM UniUserMap.university WHERE id = ?")
         .bind(university_id)
-        .fetch_one(&self.pool).await?;
+        .fetch_one(&mut tx).await?;
     let sql = format!("INSERT INTO UniUserMap.{} (uni_name, department_name) VALUES (?, ?)", university_uni_name.0);
+    let uni_name = format!("{}_{}_depart", university_uni_name.0, uni_name);
     query(&sql)
-      .bind(uni_name)
+      .bind(&uni_name)
       .bind(name)
-      .execute(&self.pool).await?;
+      .execute(&mut tx).await?;
+    let sql = format!(
+      "CREATE TABLE UniUserMap.{} (\
+       open_id VARCHAR(255) NOT NULL ,\
+       PRIMARY KEY (open_id))",
+      uni_name
+    );
+    query(&sql).execute(&mut tx).await?;
+    tx.commit().await?;
     Ok(())
+  }
+
+  pub async fn subscribe_user(&self, open_id: &str, university_id: u32, department_id: u32) -> Result<(), sqlx::Error> {
+    let mut tx = self.pool.begin().await?;
+    // locate to department table
+    let university_uni_name: (String, ) =
+      sqlx::query_as("SELECT uni_name FROM UniUserMap.university WHERE id = ?")
+        .bind(university_id)
+        .fetch_one(&mut tx).await?;
+    let department_uni_name: (String, ) =
+      sqlx::query_as(&format!("SELECT uni_name FROM UniUserMap.{} WHERE id = ?", university_uni_name.0))
+        .bind(department_id)
+        .fetch_one(&mut tx).await?;
+    // insert into department table
+    let sql = format!("INSERT INTO UniUserMap.{} (open_id) VALUES (?)", department_uni_name.0);
+    query(&sql)
+      .bind(open_id)
+      .execute(&mut tx).await?;
+    tx.commit().await?;
+    Ok(())
+  }
+
+  pub async fn get_users(&self, university_id: u32, department_id: u32) -> Result<Vec<String>, sqlx::Error> {
+    let sql = "SELECT uni_name from UniUserMap.university WHERE id = ?";
+    let university_uni_name: (String, ) = sqlx::query_as(sql)
+      .bind(university_id)
+      .fetch_one(&self.pool).await?;
+    let sql = format!("SELECT uni_name from UniUserMap.{} WHERE id = ?", university_uni_name.0);
+    let department_uni_name: (String, ) = sqlx::query_as(&sql)
+      .bind(department_id)
+      .fetch_one(&self.pool).await?;
+    let sql = format!("SELECT open_id from UniUserMap.{}", department_uni_name.0);
+    let rows: Vec<(String, )> = sqlx::query_as(&sql)
+      .fetch_all(&self.pool).await?;
+    Ok(rows.into_iter().map(|(open_id, )| open_id).collect())
   }
 
   pub async fn sign_up(&self, info: SignUpInfo) -> Result<(), SignUpErr> {
