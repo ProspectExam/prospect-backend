@@ -14,7 +14,7 @@ pub async fn get_json_from_url<T: for<'de> Deserialize<'de>>(url: &str) -> Resul
           Ok(j)
         }
         Err(_) => {
-          Err(Error::InvalidJson)
+          Err(Error::InvalidJsonFromWechat)
         }
       }
     }
@@ -28,7 +28,7 @@ pub async fn get_json_from_url<T: for<'de> Deserialize<'de>>(url: &str) -> Resul
 pub async fn post_json_to_url<T, U>(url: &str, post_data: U) -> Result<T, Error>
   where U: Serialize, T: for<'de> Deserialize<'de> {
   // TODO:
-  Err(Error::InvalidJson)
+  Err(Error::InvalidJsonFromWechat)
 }
 
 pub(crate) async fn code2session(app_id: &str, app_secret: &str, code: &str) -> Result<Code2SessionResponse, Error> {
