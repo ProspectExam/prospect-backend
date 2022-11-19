@@ -20,7 +20,7 @@ impl ProspectSqlPool {
        WHERE open_id = ? \
        AND Prospect.tokenMap.access_token = ? \
        AND Prospect.tokenMap.expired_time > ?";
-    let r: (u32, ) = sqlx::query_as(sql)
+    let r: (i32, ) = sqlx::query_as(sql)
       .bind(open_id)
       .bind(&token.token)
       .bind(Utc::now())
