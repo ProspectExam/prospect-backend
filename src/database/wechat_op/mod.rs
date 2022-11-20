@@ -162,7 +162,14 @@ impl ProspectSqlPool {
     //   .bind(Utc::now())
     //   .execute(&mut tx).await?;
     // tx.commit().await?;
-    self.subscribe_user(&info.open_id, info.school_code, info.department_code).await?;
+    let SubscribeInfo {
+      open_id,
+      info,
+      ..
+    } = info;
+    for each in info {
+      self.subscribe_user(&open_id, each.school_code, each.department_code, each.oper).await?;
+    }
 
     Ok(())
   }
