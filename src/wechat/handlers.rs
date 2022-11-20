@@ -1,8 +1,4 @@
-use std::collections::HashMap;
 use std::convert::Infallible;
-use std::future::Future;
-
-use crate::types::*;
 
 use log::{info, warn};
 
@@ -72,14 +68,11 @@ pub async fn waterfall_handler(ctx: Context) -> Result<impl warp::Reply, Infalli
 }
 
 // handler for subscribe
-pub async fn subscribe_handler(info: SubscribeInfo, mut ctx: Context) -> Result<impl warp::Reply, Infallible> {
+pub async fn subscribe_handler(info: SubscribeInfo, ctx: Context) -> Result<impl warp::Reply, Infallible> {
   info!("a request with info: {:?}", info);
   let reply = match ctx.pool.is_valid_access_token(&info.open_id, info.access_token.clone().into()).await {
     Ok(true) => {
-      info!("access token valid, subscribe {}.{} for {}",
-        &info.school_code,
-        &info.department_code,
-        &info.open_id);
+      info!("access token valid, subscribe for {}", &info.open_id);
       match ctx.pool.wechat_subscribe(info, ctx.clone()).await {
         Ok(()) => SubscribeResult::new(Ok(())),
         Err(_) => SubscribeResult::new(Err(Error::DatabaseErr)),

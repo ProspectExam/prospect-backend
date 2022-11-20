@@ -138,7 +138,7 @@ impl ProspectSqlPool {
     Ok(())
   }
 
-  pub async fn subscribe_user(&self, open_id: &str, university_id: u32, department_id: u32) -> Result<(), sqlx::Error> {
+  pub async fn subscribe_user(&self, open_id: &str, university_id: u32, department_id: u32, oper: u16) -> Result<(), sqlx::Error> {
     let mut tx = self.pool.begin().await?;
     // locate to department table
     let university_uni_name: (String, ) =
@@ -150,10 +150,25 @@ impl ProspectSqlPool {
         .bind(department_id)
         .fetch_one(&mut tx).await?;
     // insert into department table
-    let sql = format!("INSERT INTO UniUserMap.{} (open_id) VALUES (?)", department_uni_name.0);
+    let sql = if oper == 0 {
+      format!("INSERT INTO UniUserMap.{} (open_id) VALUES (?)", department_uni_name.0)
+    } else {
+      format!("DELETE FROM UniUserMap.{} WHERE open_id = ?", department_uni_name.0)
+    };
     query(&sql)
       .bind(open_id)
-      .execute(&mut tx).await?;
+      .execute(&mut tx).await
+      .map_or_else(|e| {
+        match e {
+          sqlx::Error::Database(ref ne) =>
+            match ne.try_downcast_ref::<sqlx::mysql::MySqlDatabaseError>() {
+              Some(ne) => if ne.number() == 1062 { Ok(()) } else { Err(e) }
+              None => Err(e)
+            },
+          _ => Err(e),
+        }
+      }, |_| Ok(()),
+      )?;
     tx.commit().await?;
     Ok(())
   }

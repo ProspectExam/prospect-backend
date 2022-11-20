@@ -2,11 +2,10 @@
 
 use std::collections::{HashMap, VecDeque};
 
-use chrono::{prelude::*, Duration};
-use warp::query;
+use chrono::prelude::*;
 
 use crate::wechat::common::get_access_token;
-use crate::wechat::to_wechat_types::{SendMessage, SendMessageResult, SubscribeTemplate, TestSendMessageTemplate};
+use crate::wechat::to_wechat_types::{SendMessage, SendMessageResult, TestSendMessageTemplate};
 use crate::wechat::types::{AccessToken, Context, Error, SubscribeInfo};
 
 use super::ProspectSqlPool;
@@ -163,7 +162,14 @@ impl ProspectSqlPool {
     //   .bind(Utc::now())
     //   .execute(&mut tx).await?;
     // tx.commit().await?;
-    self.subscribe_user(&info.open_id, info.school_code, info.department_code).await?;
+    let SubscribeInfo {
+      open_id,
+      info,
+      ..
+    } = info;
+    for each in info {
+      self.subscribe_user(&open_id, each.school_code, each.department_code, each.oper).await?;
+    }
 
     Ok(())
   }
@@ -171,7 +177,7 @@ impl ProspectSqlPool {
   pub async fn wechat_get_university(&self) -> Result<HashMap<String, u32>, sqlx::Error> {
     let sql = "SELECT id, name FROM UniUserMap.university";
     let rows: Vec<(u32, String)> = sqlx::query_as(sql).fetch_all(&self.pool).await?;
-    let mut map = rows
+    let map = rows
       .into_iter()
       .map(|(id, name)| (name, id))
       .collect::<HashMap<String, u32>>();
@@ -185,7 +191,7 @@ impl ProspectSqlPool {
       .fetch_one(&self.pool).await?;
     let sql = format!("SELECT id, department_name FROM UniUserMap.{}", university_name.0);
     let rows: Vec<(u32, String)> = sqlx::query_as(&sql).bind(university_id).fetch_all(&self.pool).await?;
-    let mut map = rows
+    let map = rows
       .into_iter()
       .map(|(id, name)| (name, id))
       .collect::<HashMap<String, u32>>();
