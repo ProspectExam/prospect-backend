@@ -7,11 +7,11 @@ use crate::wechat::types::Error;
 pub struct UniversityResult {
   pub err_code: i32,
   pub message: String,
-  pub universities: HashMap<String, u32>,
+  pub universities: HashMap<u32, String>,
 }
 
 impl UniversityResult {
-  pub fn new(arg: Result<HashMap<String, u32>, Error>) -> Self {
+  pub fn new(arg: Result<HashMap<u32, String>, Error>) -> Self {
     match arg {
       Ok(hashmap) => UniversityResult {
         err_code: Error::Success.into(),
@@ -36,11 +36,11 @@ pub struct GetDepartmentInfo {
 pub struct DepartmentResult {
   pub err_code: i32,
   pub message: String,
-  pub departments: HashMap<String, u32>,
+  pub departments: HashMap<u32, String>,
 }
 
 impl DepartmentResult {
-  pub fn new(arg: Result<HashMap<String, u32>, Error>) -> Self {
+  pub fn new(arg: Result<HashMap<u32, String>, Error>) -> Self {
     match arg {
       Ok(hashmap) => DepartmentResult {
         err_code: Error::Success.into(),

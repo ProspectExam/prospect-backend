@@ -6,7 +6,7 @@ use chrono::prelude::*;
 
 use crate::wechat::common::get_access_token;
 use crate::wechat::to_wechat_types::{SendMessage, SendMessageResult, TestSendMessageTemplate};
-use crate::wechat::types::{AccessToken, Context, Error, SubscribeInfo};
+use crate::wechat::types::{AccessToken, Context, Error, GetSubscribeInfo, GetSubscribeResult, SubscribeInfo};
 
 use super::ProspectSqlPool;
 
@@ -167,17 +167,32 @@ impl ProspectSqlPool {
     Ok(())
   }
 
-  pub async fn wechat_get_university(&self) -> Result<HashMap<String, u32>, sqlx::Error> {
+  pub async fn wechat_get_subscribe(&self, info: GetSubscribeInfo, ctx: Context) -> Result<HashMap<u32, Vec<u32>>, sqlx::Error> {
+    let table_name = format!("UserSubMap.u{}", info.open_id);
+    let sql =
+      format!("SELECT university_id, department_id FROM {}", table_name);
+    let rows: Vec<(u32, u32)> =
+      sqlx::query_as(&sql)
+        .fetch_all(&self.pool).await?;
+    let map = rows
+      .into_iter()
+      .fold(HashMap::new(), |mut map, (uni_id, dep_id)| {
+        map.entry(uni_id).or_insert_with(Vec::new).push(dep_id);
+        map
+      });
+    Ok(map)
+  }
+
+  pub async fn wechat_get_university(&self) -> Result<HashMap<u32, String>, sqlx::Error> {
     let sql = "SELECT id, name FROM UniUserMap.university";
     let rows: Vec<(u32, String)> = sqlx::query_as(sql).fetch_all(&self.pool).await?;
     let map = rows
       .into_iter()
-      .map(|(id, name)| (name, id))
-      .collect::<HashMap<String, u32>>();
+      .collect::<HashMap<_, _>>();
     Ok(map)
   }
 
-  pub async fn wechat_get_department(&self, university_id: u32) -> Result<HashMap<String, u32>, sqlx::Error> {
+  pub async fn wechat_get_department(&self, university_id: u32) -> Result<HashMap<u32, String>, sqlx::Error> {
     let sql = "SELECT uni_name FROM UniUserMap.university WHERE id = ?";
     let university_name: (String, ) = sqlx::query_as(sql)
       .bind(university_id)
@@ -186,8 +201,7 @@ impl ProspectSqlPool {
     let rows: Vec<(u32, String)> = sqlx::query_as(&sql).bind(university_id).fetch_all(&self.pool).await?;
     let map = rows
       .into_iter()
-      .map(|(id, name)| (name, id))
-      .collect::<HashMap<String, u32>>();
+      .collect::<HashMap<_, _>>();
     Ok(map)
   }
 }

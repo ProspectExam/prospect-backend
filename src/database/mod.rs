@@ -155,7 +155,7 @@ impl ProspectSqlPool {
       "CREATE TABLE IF NOT EXISTS {} ( \
         university_id INT UNSIGNED NOT NULL, \
         department_id INT UNSIGNED NOT NULL, \
-        PRIMARY KEY (uni_name, department_name))",
+        PRIMARY KEY (university_id, department_id))",
       table_name
     );
     sqlx::query(&sql).execute(&self.pool).await?;
@@ -194,6 +194,16 @@ impl ProspectSqlPool {
           }
         }, |_| Ok(()),
         )?;
+      // insert into user subscription table
+      let sql = if oper == 0 {
+        format!("INSERT INTO {} (university_id, department_id) VALUES (?, ?)", table_name)
+      } else {
+        format!("DELETE FROM {} WHERE university_id = ? AND department_id = ?", table_name)
+      };
+      query(&sql)
+        .bind(university_id)
+        .bind(department_id)
+        .execute(&mut tx).await?;
     }
     tx.commit().await?;
     Ok(())

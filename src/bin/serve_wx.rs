@@ -85,6 +85,16 @@ async fn main() {
     .and_then(subscribe_handler);
   info!("Path \"/subscribe\" created");
 
+  // /get_user_subscribe route
+  let route_get_user_subscribe = root
+    .and(warp::post())
+    .and(warp::path("get_user_subscribe"))
+    .and(warp::path::end())
+    .and(warp::body::content_length_limit(4096))
+    .and(warp::body::json())
+    .and(with_context(ctx.clone()))
+    .and_then(get_user_subscribe_handler);
+
   // get_university_info
   let route_get_university = root
     .and(warp::get())
