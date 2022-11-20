@@ -1,5 +1,3 @@
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
-
 use serde::{Serialize, Deserialize};
 use argh::FromArgs;
 use crate::database::ProspectSqlPool;

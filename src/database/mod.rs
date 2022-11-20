@@ -153,7 +153,18 @@ impl ProspectSqlPool {
     let sql = format!("INSERT INTO UniUserMap.{} (open_id) VALUES (?)", department_uni_name.0);
     query(&sql)
       .bind(open_id)
-      .execute(&mut tx).await?;
+      .execute(&mut tx).await
+      .map_or_else(|e| {
+        match e {
+          sqlx::Error::Database(ref ne) =>
+            match ne.try_downcast_ref::<sqlx::mysql::MySqlDatabaseError>() {
+              Some(ne) => if ne.number() == 1062 { Ok(()) } else { Err(e) }
+              None => Err(e)
+            },
+          _ => Err(e),
+        }
+      }, |_| Ok(()),
+      )?;
     tx.commit().await?;
     Ok(())
   }
