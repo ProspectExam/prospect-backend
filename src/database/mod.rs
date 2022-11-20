@@ -156,17 +156,17 @@ impl ProspectSqlPool {
       "CREATE TABLE IF NOT EXISTS {} ( \
         university_id INT UNSIGNED NOT NULL, \
         department_id INT UNSIGNED NOT NULL, \
-        PRIMARY KEY (uni_name, department_name))",
+        PRIMARY KEY (university_id, department_id))",
       table_name
     );
     sqlx::query(&sql).execute(&self.pool).await?;
-    // locate to department table
     for each in info {
       let SubscribeDetail {
         school_code: university_id,
         department_code: department_id,
         oper
       } = each;
+      // locate to department table
       let university_uni_name: (String, ) =
         sqlx::query_as("SELECT uni_name FROM UniUserMap.university WHERE id = ?")
           .bind(university_id)
