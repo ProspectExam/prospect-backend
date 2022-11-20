@@ -72,10 +72,7 @@ pub async fn subscribe_handler(info: SubscribeInfo, ctx: Context) -> Result<impl
   info!("a request with info: {:?}", info);
   let reply = match ctx.pool.is_valid_access_token(&info.open_id, info.access_token.clone().into()).await {
     Ok(true) => {
-      info!("access token valid, subscribe {}.{} for {}",
-        &info.school_code,
-        &info.department_code,
-        &info.open_id);
+      info!("access token valid, subscribe for {}", &info.open_id);
       match ctx.pool.wechat_subscribe(info, ctx.clone()).await {
         Ok(()) => SubscribeResult::new(Ok(())),
         Err(_) => SubscribeResult::new(Err(Error::DatabaseErr)),
