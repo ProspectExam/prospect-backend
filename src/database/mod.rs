@@ -8,6 +8,7 @@ use sqlx::{Connection, MySql, MySqlConnection, Pool, query};
 
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
+use crate::wechat::types::{SubscribeDetail, SubscribeInfo};
 
 pub mod wechat_op;
 
@@ -74,6 +75,8 @@ impl ProspectSqlPool {
     query("CREATE DATABASE IF NOT EXISTS Prospect").execute(&mut tx).await?;
     // create database for universities and departments store
     query("CREATE DATABASE IF NOT EXISTS UniUserMap").execute(&mut tx).await?;
+    // create database for each user for storing user subscription data
+    query("CREATE DATABASE IF NOT EXISTS UserSubMap").execute(&mut tx).await?;
     // open_id --- access_token --- expired_time map
     query("CREATE TABLE IF NOT EXISTS Prospect.tokenMap (\
            open_id VARCHAR(255) NOT NULL ,\
@@ -138,37 +141,61 @@ impl ProspectSqlPool {
     Ok(())
   }
 
-  pub async fn subscribe_user(&self, open_id: &str, university_id: u32, department_id: u32, oper: u16) -> Result<(), sqlx::Error> {
+
+  pub async fn subscribe_user(&self, info: SubscribeInfo) -> Result<(), sqlx::Error> {
     let mut tx = self.pool.begin().await?;
+    let SubscribeInfo {
+      open_id,
+      info,
+      ..
+    } = info;
+
+    let table_name = format!("UserSubMap.u{}", open_id);
+    // create subscription table for user if not exist
+    let sql = format!(
+      "CREATE TABLE IF NOT EXISTS {} ( \
+        university_id INT UNSIGNED NOT NULL, \
+        department_id INT UNSIGNED NOT NULL, \
+        PRIMARY KEY (uni_name, department_name))",
+      table_name
+    );
+    sqlx::query(&sql).execute(&self.pool).await?;
     // locate to department table
-    let university_uni_name: (String, ) =
-      sqlx::query_as("SELECT uni_name FROM UniUserMap.university WHERE id = ?")
-        .bind(university_id)
-        .fetch_one(&mut tx).await?;
-    let department_uni_name: (String, ) =
-      sqlx::query_as(&format!("SELECT uni_name FROM UniUserMap.{} WHERE id = ?", university_uni_name.0))
-        .bind(department_id)
-        .fetch_one(&mut tx).await?;
-    // insert into department table
-    let sql = if oper == 0 {
-      format!("INSERT INTO UniUserMap.{} (open_id) VALUES (?)", department_uni_name.0)
-    } else {
-      format!("DELETE FROM UniUserMap.{} WHERE open_id = ?", department_uni_name.0)
-    };
-    query(&sql)
-      .bind(open_id)
-      .execute(&mut tx).await
-      .map_or_else(|e| {
-        match e {
-          sqlx::Error::Database(ref ne) =>
-            match ne.try_downcast_ref::<sqlx::mysql::MySqlDatabaseError>() {
-              Some(ne) => if ne.number() == 1062 { Ok(()) } else { Err(e) }
-              None => Err(e)
-            },
-          _ => Err(e),
-        }
-      }, |_| Ok(()),
-      )?;
+    for each in info {
+      let SubscribeDetail {
+        school_code: university_id,
+        department_code: department_id,
+        oper
+      } = each;
+      let university_uni_name: (String, ) =
+        sqlx::query_as("SELECT uni_name FROM UniUserMap.university WHERE id = ?")
+          .bind(university_id)
+          .fetch_one(&mut tx).await?;
+      let department_uni_name: (String, ) =
+        sqlx::query_as(&format!("SELECT uni_name FROM UniUserMap.{} WHERE id = ?", university_uni_name.0))
+          .bind(department_id)
+          .fetch_one(&mut tx).await?;
+      // insert into department table
+      let sql = if oper == 0 {
+        format!("INSERT INTO UniUserMap.{} (open_id) VALUES (?)", department_uni_name.0)
+      } else {
+        format!("DELETE FROM UniUserMap.{} WHERE open_id = ?", department_uni_name.0)
+      };
+      query(&sql)
+        .bind(&open_id)
+        .execute(&mut tx).await
+        .map_or_else(|e| {
+          match e {
+            sqlx::Error::Database(ref ne) =>
+              match ne.try_downcast_ref::<sqlx::mysql::MySqlDatabaseError>() {
+                Some(ne) => if ne.number() == 1062 { Ok(()) } else { Err(e) }
+                None => Err(e)
+              },
+            _ => Err(e),
+          }
+        }, |_| Ok(()),
+        )?;
+    }
     tx.commit().await?;
     Ok(())
   }
