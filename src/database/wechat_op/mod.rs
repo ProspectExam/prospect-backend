@@ -3,9 +3,10 @@
 use std::collections::{HashMap, VecDeque};
 
 use chrono::prelude::*;
+use log::{info, warn};
 
 use crate::wechat::common::get_access_token;
-use crate::wechat::to_wechat_types::{SendMessage, SendMessageResult, TestSendMessageTemplate};
+use crate::wechat::to_wechat_types::{SendMessage, SendMessageResult, TestSendMessage, TestSendMessageTemplate};
 use crate::wechat::types::{AccessToken, Context, Error, GetSubscribeInfo, GetSubscribeResult, SubscribeInfo};
 
 use super::ProspectSqlPool;
@@ -35,13 +36,14 @@ impl ProspectSqlPool {
     let mut users = users.into_iter().map(|u| (u, 5)).collect::<VecDeque<_>>();
     let access_token = get_access_token(ctx.clone()).await?;
     let url = format!("https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token={}", access_token);
+    warn!("request to wechat server for notification");
     // prepare POST for wechat server
     // let data = SubscribeTemplate {};
-    let data = TestSendMessageTemplate::new("test title opening class".into(), "2020-01-01".into());
-    let mut post_struct = SendMessage {
+    let data = TestSendMessageTemplate::new("tsinghua".into(), "2020-01-01".into());
+    let mut post_struct = TestSendMessage {
       template_id: "GtfweX744wEk1OFMOLivAM15GRYkL6x1Dsgkwcjjd6M".to_string(),
-      to_user: "".to_string(),
-      data: serde_json::to_string(&data)?,
+      touser: "".to_string(),
+      data: data,
       miniprogram_state: "developer".to_string(),
       lang: "zh_CN".to_string(),
     };
@@ -51,7 +53,7 @@ impl ProspectSqlPool {
     let mut failed_users = Vec::<(String, Error)>::new();
     while let Some(mut user) = users.pop_front() {
       let (ref user_id, ref mut times) = user;
-      post_struct.to_user = user_id.clone();
+      post_struct.touser = user_id.clone();
       *times -= 1;
       let res = client.post(&url)
         .json(&post_struct)

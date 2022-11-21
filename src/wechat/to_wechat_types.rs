@@ -5,8 +5,19 @@ pub struct SendMessage {
   pub template_id: String,
   // pub page: String,
   /// user's open_id
-  pub to_user: String,
+  pub touser: String,
   pub data: String,
+  pub miniprogram_state: String,
+  pub lang: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct TestSendMessage {
+  pub template_id: String,
+  // pub page: String,
+  /// user's open_id
+  pub touser: String,
+  pub data: TestSendMessageTemplate,
   pub miniprogram_state: String,
   pub lang: String,
 }

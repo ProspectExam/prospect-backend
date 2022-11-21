@@ -12,6 +12,9 @@ target/
 # Jetbrains config
 .idea/
 
+# vscode
+.vscode/
+
 # Server cetificate
 *.pem
 *.der
