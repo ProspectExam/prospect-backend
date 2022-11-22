@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
-use crate::wechat::types::Error;
+use crate::wechat::types::{Error, PPool};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UniversityResult {
@@ -54,4 +54,12 @@ impl DepartmentResult {
       },
     }
   }
+}
+
+#[derive(Clone)]
+pub struct UniversityContext {
+  pub university_id: u32,
+  pub university_name: String,
+  pub department_id: u32,
+  pub department_name: String,
 }

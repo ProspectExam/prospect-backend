@@ -4,11 +4,11 @@ use crate::types::{SignUpInfo, LogInInfo, AccessToken};
 
 use crypto::digest::Digest;
 use sqlx::mysql::MySqlPoolOptions;
-use sqlx::{Connection, MySql, MySqlConnection, Pool, query};
+use sqlx::{Connection, MySql, MySqlConnection, Pool, query, Transaction};
 
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use crate::wechat::types::{SubscribeDetail, SubscribeInfo};
+use crate::wechat::types::{SubscribeDetail, SubscribeInfo, UniversityContext};
 
 pub mod wechat_op;
 
@@ -118,6 +118,39 @@ impl ProspectSqlPool {
     Ok(())
   }
 
+  pub async fn remove_university(&self, university_id: u32) -> Result<(), sqlx::Error> {
+    let mut tx = self.pool.begin().await?;
+    let university_uni_name: (String, ) =
+      sqlx::query_as("SELECT uni_name FROM UniUserMap.university WHERE id = ?")
+        .bind(university_id)
+        .fetch_one(&mut tx).await?;
+    // remove all departments
+    let mut ctx = UniversityContext {
+      university_id,
+      university_name: university_uni_name.0.clone(),
+      department_id: 0,
+      department_name: "".to_string(),
+    };
+    let department_unis: Vec<(u32, String)> =
+      sqlx::query_as(&format!("SELECT uni_name FROM UniUserMap.?"))
+        .bind(&university_uni_name.0)
+        .fetch_all(&mut tx).await?;
+    for department_uni in department_unis {
+      ctx.department_id = department_uni.0;
+      ctx.department_name = department_uni.1;
+      self.remove_department_with_tx(ctx.clone()).await?;
+    }
+    // drop table of this university
+    query(&format!("DROP TABLE UniUserMap.{}", university_uni_name.0))
+      .execute(&mut tx).await?;
+    // remove from university table
+    query("DELETE FROM UniUserMap.university WHERE id = ?")
+      .bind(university_id)
+      .execute(&mut tx).await?;
+    tx.commit().await?;
+    Ok(())
+  }
+
   pub async fn add_department(&self, university_id: u32, uni_name: &str, name: &str) -> Result<(), sqlx::Error> {
     let mut tx = self.pool.begin().await?;
     let university_uni_name: (String, ) =
@@ -137,6 +170,36 @@ impl ProspectSqlPool {
       uni_name
     );
     query(&sql).execute(&mut tx).await?;
+    tx.commit().await?;
+    Ok(())
+  }
+
+  // pub async fn remove_department(&self, university_ctx: UniversityContext) -> Result<(), sqlx::Error> {
+  //   let mut tx = self.pool.begin().await?;
+  //   self.remove_department_with_tx(&mut tx, university_ctx).await?;
+  //   tx.commit().await
+  // }
+
+  // TODO: BUG HERE
+  pub async fn remove_department_with_tx(&self, university_ctx: UniversityContext) -> Result<(), sqlx::Error> {
+    let mut tx = self.pool.begin().await?;
+    let open_ids: Vec<(String, )> =
+      sqlx::query_as(&format!("SELECT open_id FROM UniUserMap.{}", university_ctx.department_name))
+        .fetch_all(&mut tx).await?;
+    // remove from subscribe table
+    for open_id in open_ids {
+      query(&format!("DELETE FROM UserSubMap.u{} WHERE university_id = ? AND department_id = ?", open_id.0))
+        .bind(university_ctx.university_id)
+        .bind(university_ctx.department_id)
+        .execute(&mut tx).await?;
+    }
+    // drop department table
+    query(&format!("DROP TABLE UniUserMap.{}", university_ctx.department_name))
+      .execute(&mut tx).await?;
+    // remove from university table
+    query(&format!("DELETE FROM UniUserMap.{} WHERE id = ?", university_ctx.university_name))
+      .bind(university_ctx.department_id)
+      .execute(&mut tx).await?;
     tx.commit().await?;
     Ok(())
   }

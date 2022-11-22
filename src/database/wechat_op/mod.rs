@@ -7,7 +7,7 @@ use log::{info, warn};
 
 use crate::wechat::common::get_access_token;
 use crate::wechat::to_wechat_types::{SendMessage, SendMessageResult, TestSendMessage, TestSendMessageTemplate};
-use crate::wechat::types::{AccessToken, Context, Error, GetSubscribeInfo, GetSubscribeResult, SubscribeInfo};
+use crate::wechat::types::{AccessToken, Context, Error, GetSubscribeInfo, GetSubscribeResult, SubscribeDetail, SubscribeInfo};
 
 use super::ProspectSqlPool;
 
@@ -63,6 +63,20 @@ impl ProspectSqlPool {
         match res.json::<SendMessageResult>().await {
           Ok(obj) => if obj.errcode != 0 {
             failed_users.push((user_id.clone(), obj.errcode.into()));
+          } else {
+            info!("send message to user {} successfully", user_id);
+            // remove user from subscribe database
+            // construct SubscribeInfo
+            let info = SubscribeInfo {
+              open_id: user_id.clone(),
+              access_token: "".into(),
+              info: vec![SubscribeDetail {
+                school_code: university_id,
+                department_code: department_id,
+                oper: 1,
+              }],
+            };
+            self.subscribe_user(info).await?;
           },
           Err(_) => failed_users.push((user_id.clone(), Error::InvalidJsonFromWechat)),
         }
