@@ -19,6 +19,9 @@ target/
 *.pem
 *.der
 
+# Server assets
+assets/
+
 # Other
 serve_wx.sh
 src/bin/draft.rs
