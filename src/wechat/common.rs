@@ -49,7 +49,7 @@ pub(crate) async fn get_access_token(ctx: Context) -> Result<String, Error> {
   {
     // TODO: handle err cause by unwrap
     let ctx_lock = ctx.global_field.lock().unwrap();
-    if &Utc::now() < ctx_lock.expired_time.as_ref().unwrap() {
+    if ctx_lock.expired_time.is_some() && &Utc::now() < ctx_lock.expired_time.as_ref().unwrap() {
       return Ok(ctx_lock.access_token.as_ref().unwrap().clone());
     }
   }

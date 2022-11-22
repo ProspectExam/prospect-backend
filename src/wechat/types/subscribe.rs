@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Serialize, Deserialize};
 use super::Error;
 
@@ -33,6 +35,36 @@ impl SubscribeResult {
       Err(e) => SubscribeResult {
         err_code: e.into(),
         message: e.into(),
+      },
+    }
+  }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct GetSubscribeInfo {
+  pub access_token: String,
+  pub open_id: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct GetSubscribeResult {
+  pub err_code: i32,
+  pub message: String,
+  pub info: HashMap<u32, Vec<u32>>,
+}
+
+impl GetSubscribeResult {
+  pub fn new(arg: Result<HashMap<u32, Vec<u32>>, Error>) -> Self {
+    match arg {
+      Ok(hashmap) => GetSubscribeResult {
+        err_code: 0,
+        message: "".to_string(),
+        info: hashmap,
+      },
+      Err(e) => GetSubscribeResult {
+        err_code: e.into(),
+        message: e.into(),
+        info: HashMap::new(),
       },
     }
   }

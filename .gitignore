@@ -12,9 +12,15 @@ target/
 # Jetbrains config
 .idea/
 
+# vscode
+.vscode/
+
 # Server cetificate
 *.pem
 *.der
+
+# Server assets
+assets/
 
 # Other
 serve_wx.sh

@@ -118,7 +118,18 @@ async fn main() {
     .and_then(subscribe_handler);
   info!("Path \"/subscribe\" created");
 
-  // get_university_info
+  // /get_user_subscribe route
+  let route_get_user_subscribe = root
+    .and(warp::post())
+    .and(warp::path("get_user_subscribe"))
+    .and(warp::path::end())
+    .and(warp::body::content_length_limit(4096))
+    .and(warp::body::json())
+    .and(with_context(ctx.clone()))
+    .and_then(get_user_subscribe_handler);
+  info!("Path \"/get_user_subscribe\" created");
+
+  // get_university_info route
   let route_get_university = root
     .and(warp::get())
     .and(warp::path("get_university"))
@@ -127,7 +138,7 @@ async fn main() {
     .and_then(get_university_handler);
   info!("Path \"/get_university\" created");
 
-  // get_department
+  // get_department route
   let route_get_department = root
     .and(warp::post())
     .and(warp::path("get_department"))
@@ -143,6 +154,7 @@ async fn main() {
     .or(route_send_code)
     .or(route_waterfall)
     .or(route_subscribe)
+    .or(route_get_user_subscribe)
     .or(route_get_university)
     .or(route_get_department);
   info!("all route registered");

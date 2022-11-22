@@ -90,6 +90,28 @@ pub async fn subscribe_handler(info: SubscribeInfo, ctx: Context) -> Result<impl
   Ok(warp::reply::json(&reply))
 }
 
+pub async fn get_user_subscribe_handler(info: GetSubscribeInfo, ctx: Context) -> Result<impl warp::Reply, Infallible> {
+  info!("a request with info: {:?}", info);
+  let reply = match ctx.pool.is_valid_access_token(&info.open_id, info.access_token.clone().into()).await {
+    Ok(true) => {
+      info!("access token valid, get subscribe for {}", &info.open_id);
+      match ctx.pool.wechat_get_subscribe(info, ctx.clone()).await {
+        Ok(sub) => GetSubscribeResult::new(Ok(sub)),
+        Err(_) => GetSubscribeResult::new(Err(Error::DatabaseErr)),
+      }
+    }
+    Ok(false) => {
+      info!("access token expired from {}", info.open_id);
+      GetSubscribeResult::new(Err(Error::TokenExpired))
+    }
+    Err(_) => {
+      warn!("querying token failed caused by database");
+      GetSubscribeResult::new(Err(Error::DatabaseErr))
+    }
+  };
+  Ok(warp::reply::json(&reply))
+}
+
 async fn notify_subscription() {
   // TODO:
   // ctx.session = Some(Code2SessionResponse {

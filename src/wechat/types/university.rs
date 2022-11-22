@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
-use crate::wechat::types::Error;
+use crate::wechat::types::{Error, PPool};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UniversityResult {
   pub err_code: i32,
   pub message: String,
-  pub universities: HashMap<String, u32>,
+  pub universities: HashMap<u32, String>,
 }
 
 impl UniversityResult {
-  pub fn new(arg: Result<HashMap<String, u32>, Error>) -> Self {
+  pub fn new(arg: Result<HashMap<u32, String>, Error>) -> Self {
     match arg {
       Ok(hashmap) => UniversityResult {
         err_code: Error::Success.into(),
@@ -36,11 +36,11 @@ pub struct GetDepartmentInfo {
 pub struct DepartmentResult {
   pub err_code: i32,
   pub message: String,
-  pub departments: HashMap<String, u32>,
+  pub departments: HashMap<u32, String>,
 }
 
 impl DepartmentResult {
-  pub fn new(arg: Result<HashMap<String, u32>, Error>) -> Self {
+  pub fn new(arg: Result<HashMap<u32, String>, Error>) -> Self {
     match arg {
       Ok(hashmap) => DepartmentResult {
         err_code: Error::Success.into(),
@@ -54,4 +54,12 @@ impl DepartmentResult {
       },
     }
   }
+}
+
+#[derive(Clone)]
+pub struct UniversityContext {
+  pub university_id: u32,
+  pub university_name: String,
+  pub department_id: u32,
+  pub department_name: String,
 }
