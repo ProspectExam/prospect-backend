@@ -116,6 +116,12 @@ async fn main() {
     .and_then(get_department_handler);
   info!("Path \"/get_department\" created");
 
+  // post of assets
+  let route_assets_article = root
+    .and(warp::get())
+    .and(warp::path("post"))
+    .and(warp::fs::dir("assets/post"));
+
   let routes = warp::any()
     .and(hello_world)
     .or(route_send_code)
@@ -123,7 +129,8 @@ async fn main() {
     .or(route_subscribe)
     .or(route_get_user_subscribe)
     .or(route_get_university)
-    .or(route_get_department);
+    .or(route_get_department)
+    .or(route_assets_article);
   info!("all route registered");
   info!("starting serve");
 

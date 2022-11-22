@@ -11,5 +11,5 @@ pub struct WaterFall {
 pub struct WaterFallItem {
   pub img_source_link: String,
   pub title: String,
-  pub post_id: u64,
+  pub post_id: String,
 }
