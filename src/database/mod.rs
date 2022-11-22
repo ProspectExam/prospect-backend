@@ -132,20 +132,19 @@ impl ProspectSqlPool {
       department_name: "".to_string(),
     };
     let department_unis: Vec<(u32, String)> =
-      sqlx::query_as(&format!("SELECT uni_name FROM UniUserMap.?"))
-        .bind(&university_uni_name.0)
+      sqlx::query_as(&format!("SELECT id, uni_name FROM UniUserMap.{}", university_uni_name.0))
         .fetch_all(&mut tx).await?;
     for department_uni in department_unis {
       ctx.department_id = department_uni.0;
       ctx.department_name = department_uni.1;
       self.remove_department_with_tx(ctx.clone()).await?;
     }
-    // drop table of this university
-    query(&format!("DROP TABLE UniUserMap.{}", university_uni_name.0))
-      .execute(&mut tx).await?;
     // remove from university table
     query("DELETE FROM UniUserMap.university WHERE id = ?")
       .bind(university_id)
+      .execute(&mut tx).await?;
+    // drop table of this university
+    query(&format!("DROP TABLE UniUserMap.{}", university_uni_name.0))
       .execute(&mut tx).await?;
     tx.commit().await?;
     Ok(())
@@ -193,12 +192,12 @@ impl ProspectSqlPool {
         .bind(university_ctx.department_id)
         .execute(&mut tx).await?;
     }
-    // drop department table
-    query(&format!("DROP TABLE UniUserMap.{}", university_ctx.department_name))
-      .execute(&mut tx).await?;
     // remove from university table
     query(&format!("DELETE FROM UniUserMap.{} WHERE id = ?", university_ctx.university_name))
       .bind(university_ctx.department_id)
+      .execute(&mut tx).await?;
+    // drop department table
+    query(&format!("DROP TABLE UniUserMap.{}", university_ctx.department_name))
       .execute(&mut tx).await?;
     tx.commit().await?;
     Ok(())
