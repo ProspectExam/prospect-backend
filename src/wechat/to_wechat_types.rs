@@ -6,7 +6,7 @@ pub struct SendMessage {
   // pub page: String,
   /// user's open_id
   pub touser: String,
-  pub data: String,
+  pub data: SubscribeTemplate,
   pub miniprogram_state: String,
   pub lang: String,
 }
@@ -35,13 +35,19 @@ pub struct SendMessageResult {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct SubscribeTemplate {
-  // TODO:
+  thing1: Value,
+  thing2: Value,
+  time3: Value,
 }
 
 impl SubscribeTemplate {
   pub fn new(university: String, department: String, date: String) -> Self {
     // TODO:
-    SubscribeTemplate {}
+    SubscribeTemplate {
+      thing1: Value { value: university },
+      thing2: Value { value: department },
+      time3: Value { value: date },
+    }
   }
 }
 

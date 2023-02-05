@@ -39,6 +39,14 @@ pub struct Options {
   /// wx appsecret
   #[argh(option, short = 's')]
   pub wx_appsecret: String,
+
+  /// assets path
+  #[argh(option, short = 'x')]
+  pub assets_path: String,
+
+  /// if init from fs
+  #[argh(switch, short = 'f')]
+  pub init_from_fs: bool,
 }
 
 /***********************************************/

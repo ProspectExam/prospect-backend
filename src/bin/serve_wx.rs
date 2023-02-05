@@ -32,6 +32,9 @@ async fn main() {
     "Prospect".to_string(),
     5,
   ).await.unwrap();
+  if options.init_from_fs {
+    pool.init_from_assets(options.assets_path.clone().into()).await.unwrap();
+  }
   info!("Create Sql connection pool OK");
 
   let ctx = Context::new(pool, Arc::new(options));
@@ -122,6 +125,12 @@ async fn main() {
     .and(warp::path("post"))
     .and(warp::fs::dir("assets/post"));
 
+  // paper of assets
+  let route_assets_paper = root
+    .and(warp::get())
+    .and(warp::path("paper"))
+    .and(warp::fs::dir("assets/paper"));
+
   let routes = warp::any()
     .and(hello_world)
     .or(route_send_code)
@@ -130,7 +139,8 @@ async fn main() {
     .or(route_get_user_subscribe)
     .or(route_get_university)
     .or(route_get_department)
-    .or(route_assets_article);
+    .or(route_assets_article)
+    .or(route_assets_paper);
   info!("all route registered");
   info!("starting serve");
 

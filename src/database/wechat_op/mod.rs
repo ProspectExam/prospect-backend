@@ -6,8 +6,8 @@ use chrono::prelude::*;
 use log::{info, warn};
 
 use crate::wechat::common::get_access_token;
-use crate::wechat::to_wechat_types::{SendMessage, SendMessageResult, TestSendMessage, TestSendMessageTemplate};
-use crate::wechat::types::{AccessToken, Context, Error, GetSubscribeInfo, GetSubscribeResult, SubscribeDetail, SubscribeInfo};
+use crate::wechat::to_wechat_types::{SendMessage, SendMessageResult, SubscribeTemplate};
+use crate::wechat::types::{AccessToken, Context, Error, GetSubscribeInfo, SubscribeDetail, SubscribeInfo};
 
 use super::ProspectSqlPool;
 
@@ -37,11 +37,19 @@ impl ProspectSqlPool {
     let access_token = get_access_token(ctx.clone()).await?;
     let url = format!("https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token={}", access_token);
     warn!("request to wechat server for notification");
+    // get university and department name
+    let university = self.get_university_name(university_id).await?;
+    let department = self.get_department_name(university_id, department_id).await?;
     // prepare POST for wechat server
-    // let data = SubscribeTemplate {};
-    let data = TestSendMessageTemplate::new("tsinghua".into(), "2020-01-01".into());
-    let mut post_struct = TestSendMessage {
-      template_id: "GtfweX744wEk1OFMOLivAM15GRYkL6x1Dsgkwcjjd6M".to_string(),
+    // let data = TestSendMessageTemplate::new("tsinghua".into(), "2020-01-01".into());
+    let data =
+      SubscribeTemplate::new(
+        university,
+        department,
+        Utc::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+      );
+    let mut post_struct = SendMessage {
+      template_id: "TMFuXpbbjg21tEN1c4D_kHGtsNuRccqo7ft3aBC2J6s".to_string(),
       touser: "".to_string(),
       data: data,
       miniprogram_state: "developer".to_string(),
@@ -152,32 +160,6 @@ impl ProspectSqlPool {
 // impl for subscribe
 impl ProspectSqlPool {
   pub async fn wechat_subscribe(&self, info: SubscribeInfo, ctx: Context) -> Result<(), sqlx::Error> {
-    // let mut tx = sqlx::Pool::begin(&self.pool).await?;
-    // // get university uni_id
-    // let university_uni: (String, ) =
-    //   sqlx::query_as("SELECT uni_name FROM Prospect.university WHERE id = ?")
-    //     .bind(&info.school_code)
-    //     .fetch_one(&mut tx).await?;
-    // // get department uni_id
-    // let sql = format!(
-    //   "SELECT uni_name FROM Prospect.department WHERE uni_name = '{}' AND id = ?",
-    //   university_uni.0
-    // );
-    // let department_uni: (String, ) =
-    //   sqlx::query_as(&sql)
-    //     .bind(&info.department_code)
-    //     .fetch_one(&mut tx).await?;
-    // let sql = format!(
-    //   "INSERT INTO Prospect.{} (open_id) VALUES (?)",
-    //   department_uni.0
-    // );
-    // sqlx::query(&sql)
-    //   .bind(&ctx.session.as_ref().unwrap().openid.as_ref().unwrap())
-    //   .bind(&university_uni.0)
-    //   .bind(&department_uni.0)
-    //   .bind(Utc::now())
-    //   .execute(&mut tx).await?;
-    // tx.commit().await?;
     self.subscribe_user(info).await?;
 
     Ok(())

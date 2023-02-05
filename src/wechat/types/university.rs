@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
-use crate::wechat::types::{Error, PPool};
+use crate::wechat::types::Error;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UniversityResult {

@@ -25,3 +25,5 @@ assets/
 # Other
 serve_wx.sh
 src/bin/draft.rs
+upload_asset.sh
+tmp/

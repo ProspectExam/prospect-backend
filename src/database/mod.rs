@@ -4,7 +4,7 @@ use crate::types::{SignUpInfo, LogInInfo, AccessToken};
 
 use crypto::digest::Digest;
 use sqlx::mysql::MySqlPoolOptions;
-use sqlx::{Connection, MySql, MySqlConnection, Pool, query, Transaction};
+use sqlx::{Connection, MySql, MySqlConnection, Pool, query, Row};
 
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
@@ -90,32 +90,63 @@ impl ProspectSqlPool {
            id INT UNSIGNED NOT NULL AUTO_INCREMENT ,\
            uni_name VARCHAR(128) NOT NULL ,\
            name VARCHAR(1024) NOT NULL ,\
-           PRIMARY KEY (id) ,\
-           UNIQUE KEY (uni_name) \
+           PRIMARY KEY (uni_name) ,\
+           UNIQUE KEY (id)\
            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci")
       .execute(&mut tx).await?;
     tx.commit().await?;
     Ok(())
   }
 
-  pub async fn add_university(&self, uni_name: &str, name: &str) -> Result<(), sqlx::Error> {
+  pub async fn init_from_assets(&self, assets_path: String) -> Result<(), sqlx::Error> {
+    // init paper
+    for file in std::fs::read_dir(assets_path.clone() + "/paper").unwrap() {
+      if file.as_ref().map_or(false, |f| f.file_type().map_or(false, |tp| tp.is_dir())) {
+        let name = file.unwrap().file_name().into_string().unwrap();
+        let nh = Self::name_hash(&name);
+        let university_id = self.add_university(&nh, &name).await?;
+        for departs in std::fs::read_dir(assets_path.clone() + "/paper/" + &name).unwrap() {
+          if departs.as_ref().map_or(false, |f| f.file_type().map_or(false, |tp| tp.is_dir())) {
+            let depart_name = departs.unwrap().file_name().into_string().unwrap();
+            let to_hash = name.clone() + &depart_name;
+            let nh = Self::name_hash(&to_hash);
+            self.add_department(university_id, &nh, &depart_name).await?;
+          }
+        }
+      }
+    }
+    Ok(())
+  }
+
+  fn name_hash(name: &str) -> String {
+    let mut hasher = crypto::sha1::Sha1::new();
+    hasher.input(name.as_bytes());
+    hasher.result_str()
+  }
+
+  pub async fn add_university(&self, uni_name: &str, name: &str) -> Result<u32, sqlx::Error> {
     let mut tx = self.pool.begin().await?;
-    let uni_name = format!("{}_university", uni_name);
-    query("INSERT INTO UniUserMap.university (uni_name, name) VALUES (?, ?)")
+    // let uni_name = format!("{}_university", uni_name);
+    let uni_name = uni_name.to_string();
+    query("INSERT IGNORE INTO UniUserMap.university (uni_name, name) VALUES (?, ?)")
       .bind(&uni_name)
       .bind(name)
       .execute(&mut tx).await?;
     query(&format!(
-      "CREATE TABLE UniUserMap.{} (\
+      "CREATE TABLE IF NOT EXISTS UniUserMap.{} (\
        id INT UNSIGNED NOT NULL AUTO_INCREMENT ,\
        uni_name VARCHAR(128) NOT NULL ,\
        department_name VARCHAR(1024) NOT NULL ,\
-       PRIMARY KEY (id) ,\
-       UNIQUE KEY (uni_name) \
+       PRIMARY KEY (uni_name) ,\
+       UNIQUE KEY (id)\
        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", uni_name
     )).execute(&mut tx).await?;
+    // get university id
+    let uni_id = query("SELECT id FROM UniUserMap.university WHERE uni_name = ?")
+      .bind(&uni_name)
+      .fetch_one(&mut tx).await?.get(0);
     tx.commit().await?;
-    Ok(())
+    Ok(uni_id)
   }
 
   pub async fn remove_university(&self, university_id: u32) -> Result<(), sqlx::Error> {
@@ -156,14 +187,15 @@ impl ProspectSqlPool {
       sqlx::query_as("SELECT uni_name FROM UniUserMap.university WHERE id = ?")
         .bind(university_id)
         .fetch_one(&mut tx).await?;
-    let sql = format!("INSERT INTO UniUserMap.{} (uni_name, department_name) VALUES (?, ?)", university_uni_name.0);
-    let uni_name = format!("{}_{}_depart", university_uni_name.0, uni_name);
+    let sql = format!("INSERT IGNORE INTO UniUserMap.{} (uni_name, department_name) VALUES (?, ?)", university_uni_name.0);
+    // let uni_name = format!("{}_{}_depart", university_uni_name.0, uni_name);
+    let uni_name = uni_name.to_string();
     query(&sql)
       .bind(&uni_name)
       .bind(name)
       .execute(&mut tx).await?;
     let sql = format!(
-      "CREATE TABLE UniUserMap.{} (\
+      "CREATE TABLE IF NOT EXISTS UniUserMap.{} (\
        open_id VARCHAR(255) NOT NULL ,\
        PRIMARY KEY (open_id))",
       uni_name
@@ -284,6 +316,26 @@ impl ProspectSqlPool {
     let rows: Vec<(String, )> = sqlx::query_as(&sql)
       .fetch_all(&self.pool).await?;
     Ok(rows.into_iter().map(|(open_id, )| open_id).collect())
+  }
+
+  async fn get_university_name(&self, university_id: u32) -> Result<String, sqlx::Error> {
+    let sql = "SELECT name from UniUserMap.university WHERE id = ?";
+    let university_uni_name: (String, ) = sqlx::query_as(sql)
+      .bind(university_id)
+      .fetch_one(&self.pool).await?;
+    Ok(university_uni_name.0)
+  }
+
+  async fn get_department_name(&self, university_id: u32, department_id: u32) -> Result<String, sqlx::Error> {
+    let sql = "SELECT uni_name from UniUserMap.university WHERE id = ?";
+    let university_uni_name: (String, ) = sqlx::query_as(sql)
+      .bind(university_id)
+      .fetch_one(&self.pool).await?;
+    let sql = format!("SELECT department_name from UniUserMap.{} WHERE id = ?", university_uni_name.0);
+    let department_uni_name: (String, ) = sqlx::query_as(&sql)
+      .bind(department_id)
+      .fetch_one(&self.pool).await?;
+    Ok(department_uni_name.0)
   }
 
   pub async fn sign_up(&self, info: SignUpInfo) -> Result<(), SignUpErr> {
