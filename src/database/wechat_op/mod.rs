@@ -171,7 +171,18 @@ impl ProspectSqlPool {
       format!("SELECT university_id, department_id FROM {}", table_name);
     let rows: Vec<(u32, u32)> =
       sqlx::query_as(&sql)
-        .fetch_all(&self.pool).await?;
+        .fetch_all(&self.pool).await
+        .map_or_else(|e| {
+          match e {
+            sqlx::Error::Database(ref ne) =>
+              match ne.try_downcast_ref::<sqlx::mysql::MySqlDatabaseError>() {
+                Some(ne) => if ne.number() == 1146 { Ok(Vec::new()) } else { Err(e) }
+                None => Err(e)
+              },
+            _ => Err(e),
+          }
+        }, |data| Ok(data),
+        )?;
     let map = rows
       .into_iter()
       .fold(HashMap::new(), |mut map, (uni_id, dep_id)| {
