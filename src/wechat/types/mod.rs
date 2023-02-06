@@ -6,7 +6,7 @@ use crate::database::ProspectSqlPool;
 pub type PPool = ProspectSqlPool;
 
 /// serve_wx param parse
-#[derive(Debug, FromArgs)]
+#[derive(Debug, Clone, FromArgs)]
 pub struct Options {
   /// bind addr
   #[argh(positional)]

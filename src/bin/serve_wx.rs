@@ -37,7 +37,7 @@ async fn main() {
   }
   info!("Create Sql connection pool OK");
 
-  let ctx = Context::new(pool, Arc::new(options));
+  let ctx = Context::new(pool, Arc::new(options.clone()));
   println!("{:?}", ctx);
 
   let root = warp::any();
@@ -123,13 +123,13 @@ async fn main() {
   let route_assets_article = root
     .and(warp::get())
     .and(warp::path("post"))
-    .and(warp::fs::dir("assets/post"));
+    .and(warp::fs::dir(options.assets_path.clone() + "/post"));
 
   // paper of assets
   let route_assets_paper = root
     .and(warp::get())
     .and(warp::path("paper"))
-    .and(warp::fs::dir("assets/paper"));
+    .and(warp::fs::dir(options.assets_path.clone() + "/paper"));
 
   let routes = warp::any()
     .and(hello_world)

@@ -24,4 +24,3 @@ tokio-rustls = "0.23"
 reqwest = { version = "0.11", features = ["json"] }
 warp = { version = "0.3", features = ["tls"] }
 sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "mysql", "chrono"] }
-rocket = { version = "0.5.0-rc.2", features = ["secrets", "tls", "json"] }
