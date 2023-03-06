@@ -63,12 +63,14 @@ pub async fn send_code_handler(info: CodeInfo, mut ctx: Context) -> Result<impl 
 
 // handler for waterfall
 pub async fn waterfall_handler(ctx: Context) -> Result<impl warp::Reply, Infallible> {
-  // TODO: todo!()
-  let items = vec![
-    WaterFallItem::new("".into(), "brief talking on creation".into(), "post/brief_taking_on_creational.md".into()),
-    WaterFallItem::new("".into(), "implement dup2".into(), "post/implement_dup2.md".into()),
-    WaterFallItem::new("".into(), "linux kernel stack switch".into(), "post/linux_kernel_stack_switch.md".into()),
-  ];
+  let mut items = Vec::new();
+  // read dirs
+  for file in std::fs::read_dir("./assets/waterfall").unwrap() {
+    if file.as_ref().map_or(false, |f| f.file_type().map_or(false, |t| t.is_file())) {
+      let filename = file.unwrap().file_name().into_string().unwrap();
+      items.push(WaterFallItem::new("".into(), filename.clone(), "waterfall/".to_string() + &filename));
+    }
+  }
   let reply = WaterFall::new(Ok(items));
   Ok(warp::reply::json(&reply))
 }

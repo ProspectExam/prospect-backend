@@ -131,6 +131,12 @@ async fn main() {
     .and(warp::path("paper"))
     .and(warp::fs::dir(options.assets_path.clone() + "/paper"));
 
+  // waterfall of assets
+  let route_assets_waterfall = root
+    .and(warp::get())
+    .and(warp::path("waterfall"))
+    .and(warp::fs::dir(options.assets_path.clone() + "/waterfall"));
+
   let routes = warp::any()
     .and(hello_world)
     .or(route_send_code)
@@ -140,7 +146,8 @@ async fn main() {
     .or(route_get_university)
     .or(route_get_department)
     .or(route_assets_article)
-    .or(route_assets_paper);
+    .or(route_assets_paper)
+    .or(route_assets_waterfall);
   info!("all route registered");
   info!("starting serve");
 
